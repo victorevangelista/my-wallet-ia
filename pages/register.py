@@ -11,16 +11,6 @@ from dash_extensions import Keyboard
 
 from app import *
 
-card_style = {
-    'width': '300px',
-    'min-height': '300px',
-    'padding-top': '25px',
-    'padding-right': '25px',
-    'padding-left': '25px',
-}
-
-
-
 # =========  Layout  =========== #
 def render_layout(message):
     message = f"Ocorreu algum erro durante o registro. {message}" if "Erro" in message else message
@@ -40,7 +30,7 @@ def render_layout(message):
 
                 Keyboard(captureKeys=["Enter"], id="register-keyboard"),
 
-            ], style=card_style, className="align-self-center")
+            ], className="align-self-center card-register")
     return layout
 
 

@@ -11,14 +11,6 @@ from flask_login import login_user, logout_user, current_user
 from dash.exceptions import PreventUpdate
 from dash_extensions import Keyboard
 
-card_style = {
-    'width': '300px',
-    'min-height': '300px',
-    'padding-top': '25px',
-    'padding-right': '25px',
-    'padding-left': '25px',
-}
-
 # =========  Layout  =========== #
 def render_layout(message):
     message = "Ocorreu algum erro durante o login." if message == "error" else message
@@ -36,7 +28,7 @@ def render_layout(message):
 
                 Keyboard(captureKeys=["Enter"], id="login-keyboard"),
 
-            ], style=card_style, className="align-self-center") 
+            ], className="align-self-center card-login") 
     return login
 
 

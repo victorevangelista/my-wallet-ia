@@ -16,13 +16,6 @@ from dash.exceptions import PreventUpdate
 from pages.components import sidebar, dashboards, extrato_despesas, extrato_receitas
 
 load_figure_template(["quartz"])
-card_style = {
-    'width': '800px',
-    'min-height': '300px',
-    'padding-top': '25px',
-    'padding-right': '25px',
-    'padding-left': '25px',
-}
 
 df = pd.DataFrame(np.random.randn(100, 1), columns=["data"])
 fig = px.line(df, x=df.index, y="data", template="quartz")

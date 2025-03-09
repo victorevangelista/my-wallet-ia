@@ -9,6 +9,7 @@ import plotly.express as px
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, logout_user, current_user
 from dash.exceptions import PreventUpdate
+from dash_extensions import Keyboard
 
 card_style = {
     'width': '300px',
@@ -31,7 +32,9 @@ def render_layout(message):
                 html.Div([
                     html.Label("Ou", style={"margin-right": "5px"}),
                     dcc.Link("Registre-se", href="/register"),
-                ], style={"padding": "20px", "justify-content": "center", "display": "flex"})
+                ], style={"padding": "20px", "justify-content": "center", "display": "flex"}),
+
+                Keyboard(captureKeys=["Enter"], id="keyboard-listener"),
 
             ], style=card_style, className="align-self-center") 
     return login
@@ -42,13 +45,15 @@ def render_layout(message):
 @app.callback(
     Output('login-state', 'data'),
 
-    Input('login_button', 'n_clicks'), 
+    [Input('login_button', 'n_clicks'), 
+     Input('keyboard-listener', 'n_keydowns')],
 
     [State('user_login', 'value'), 
     State('pwd_login', 'value')],
     )
-def successful(n_clicks, username, password):
-    if n_clicks == None:
+def successful(n_clicks, n_keydowns, username, password):
+    
+    if n_clicks == None and n_keydowns == None:
         raise PreventUpdate
 
     user = Users.query.filter_by(username=username).first()

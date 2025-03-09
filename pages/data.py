@@ -7,18 +7,12 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from dash_bootstrap_templates import load_figure_template
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, logout_user, current_user
 from dash.exceptions import PreventUpdate
 
 from pages.components import sidebar, dashboards, extrato_despesas, extrato_receitas
-
-load_figure_template(["quartz"])
-
-df = pd.DataFrame(np.random.randn(100, 1), columns=["data"])
-fig = px.line(df, x=df.index, y="data", template="quartz")
 
 
 # =========  Layout  =========== #

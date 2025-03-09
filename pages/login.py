@@ -34,7 +34,7 @@ def render_layout(message):
                     dcc.Link("Registre-se", href="/register"),
                 ], style={"padding": "20px", "justify-content": "center", "display": "flex"}),
 
-                Keyboard(captureKeys=["Enter"], id="keyboard-listener"),
+                Keyboard(captureKeys=["Enter"], id="login-keyboard"),
 
             ], style=card_style, className="align-self-center") 
     return login
@@ -46,7 +46,7 @@ def render_layout(message):
     Output('login-state', 'data'),
 
     [Input('login_button', 'n_clicks'), 
-     Input('keyboard-listener', 'n_keydowns')],
+     Input('login-keyboard', 'n_keydowns')],
 
     [State('user_login', 'value'), 
     State('pwd_login', 'value')],

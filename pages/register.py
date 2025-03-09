@@ -7,6 +7,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from werkzeug.security import generate_password_hash
 from dash.exceptions import PreventUpdate
+from dash_extensions import Keyboard
 
 from app import *
 
@@ -35,7 +36,9 @@ def render_layout(message):
                 html.Div([
                     html.Label("Ou ", style={"margin-right": "5px"}),
                     dcc.Link("faça login", href="/login"),
-                ], style={"padding": "20px", "justify-content": "center", "display": "flex"})
+                ], style={"padding": "20px", "justify-content": "center", "display": "flex"}),
+
+                Keyboard(captureKeys=["Enter"], id="register-keyboard"),
 
             ], style=card_style, className="align-self-center")
     return layout
@@ -45,15 +48,18 @@ def render_layout(message):
 # =========  Callbacks Page1  =========== #
 @app.callback(
     Output('register-state', 'data'),
-    Input('register-button', 'n_clicks'), 
+    
+    [Input('register-button', 'n_clicks'), 
+     Input('register-keyboard', 'n_keydowns')],
 
     [State('user_register', 'value'), 
     State('pwd_register', 'value'),
     State('email_register', 'value')],
     )
-def successful(n_clicks, username, password, email):
-    if n_clicks == None:
+def successful(n_clicks, n_keydowns, username, password, email):
+    if n_clicks == None and n_keydowns == None:
         raise PreventUpdate
+    print(n_keydowns)
 
     if username is not None and password is not None and email is not None:
         hashed_password = generate_password_hash(password)

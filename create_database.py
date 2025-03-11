@@ -28,8 +28,24 @@ def create_users_table():
     Users.metadata.create_all(engine)
 create_users_table()
 
+class Cat_despesas(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    categoria = db.Column(db.String(50), unique=True, nullable = False)
+
+#fuction to create table using Cat_despesas class
+def create_cat_despesas_table():
+    Cat_despesas.metadata.create_all(engine)
+create_cat_despesas_table()
 
 
+class Cat_receitas(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    categoria = db.Column(db.String(50), unique=True, nullable = False)
+
+#fuction to create table using Cat_receitas class
+def create_cat_receitas_table():
+    Cat_receitas.metadata.create_all(engine)
+create_cat_receitas_table()
 
 # import pandas as pd
 # c = conn.cursor()

@@ -47,6 +47,36 @@ def create_cat_receitas_table():
     Cat_receitas.metadata.create_all(engine)
 create_cat_receitas_table()
 
+
+class Despesas(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    descricao = db.Column(db.String(250))
+    categoria = db.Column(db.String(50))
+    data = db.Column(db.Date)
+    valor = db.Column(db.Float)
+    parcelado = db.Column(db.Boolean)
+    fixo = db.Column(db.Boolean)
+
+#fuction to create table using Despesas class
+def create_despesas_table():
+    Despesas.metadata.create_all(engine)
+create_despesas_table()
+
+
+class Receitas(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    descricao = db.Column(db.String(250))
+    categoria = db.Column(db.String(50))
+    data = db.Column(db.Date)
+    valor = db.Column(db.Float)
+    parcelado = db.Column(db.Boolean)
+    fixo = db.Column(db.Boolean)
+
+#fuction to create table using Receitas class
+def create_receitas_table():
+    Receitas.metadata.create_all(engine)
+create_receitas_table()
+
 # import pandas as pd
 # c = conn.cursor()
 # df = pd.read_sql('select * from users', conn)

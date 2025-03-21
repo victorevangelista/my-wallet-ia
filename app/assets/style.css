@@ -14,8 +14,13 @@ html, body {
     overflow: hidden
 }
 
-input {
+.card-login > input, .card-register > input {
     margin-bottom: 25px;
+    width: 100%;
+}
+
+.form-control, .form-select{
+    width: 95%;
 }
 
 body {
@@ -51,12 +56,39 @@ body {
     font-size: 12px;
 }
 
+.card-icon{
+    color: #ffffff;
+    text-align: center;
+    font-size: 30px;
+    margin: auto;
+}
 
 .perfil_avatar{
     margin-left: auto;
     margin-right: auto;
     width: 150px !important;
     background-color: rgba(0, 0, 0, 0) !important;
+}
+
+.page-not-found{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    width: 100%;
+    flex-direction: column;
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+.page-not-found > h1{
+    font-size: 15vw;
+    font-weight: 700 !important;
+    color: #ffffff;
+}
+.page-not-found > h3{
+    margin-top: 20px;
+    font-size: 2vw;
+    letter-spacing: 5px;
+    color: #ffffff;
 }
 
 #new-button{

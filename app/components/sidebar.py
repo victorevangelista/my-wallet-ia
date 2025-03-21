@@ -1,21 +1,14 @@
-import os
-import dash
 from dash import html, dcc
-from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
-from dash.exceptions import PreventUpdate
-from app import app
-
 from datetime import datetime, date
-import plotly.express as px
-import numpy as np
-import pandas as pd
+from app.models.categoria import CatDespesas, CatReceitas
 
+# Carregar categorias do banco
+def get_categorias_despesas():
+    return [{'label': c.categoria, 'value': c.categoria} for c in CatDespesas.query.all()]
 
-from globals import *
-from dash_bootstrap_templates import ThemeChangerAIO
-
-from flask_login import login_user, logout_user, current_user
+def get_categorias_receitas():
+    return [{'label': c.categoria, 'value': c.categoria} for c in CatReceitas.query.all()]
 
 
 # ========= Layout ========= #
@@ -26,7 +19,7 @@ layout = dbc.Col([
 
     # Seção PERFIL ________________________________________>
                 dbc.Button(id='botao_avatar',
-                           children=[html.Img(src='/assets/img_hom.png', id='avatar_change', alt='Avatar', className='perfil_avatar')
+                           children=[html.Img(src='../assets/img_hom.png', id='avatar_change', alt='Avatar', className='perfil_avatar')
                 ], style={'backgroundColor': 'transparent', 'borderColor': 'transparent'}),
 
     # Seção NOVO ________________________________________>
@@ -62,7 +55,7 @@ layout = dbc.Col([
                         dbc.Row([
                             dbc.Col([
                                 dbc.Label('Data: '),
-                                dcc.DatePickerSingle(id='date-receitas',
+                                dcc.DatePickerSingle(id='date-receita',
                                                      min_date_allowed=date(2020,1,1),
                                                      max_date_allowed=date(2030,12,31),
                                                      date=datetime.today(),
@@ -83,9 +76,10 @@ layout = dbc.Col([
 
                             dbc.Col([
                                 dbc.Label('Categoria da Receita'),
-                                dbc.Select(id='select-receita', 
-                                           options=[{'label': i, 'value': i} for i in cat_receitas], 
-                                           value=cat_receitas[0])
+                                dbc.Select(
+                                            id='select-receita', 
+                                            options=[], 
+                                           )
                             ], width=4),
 
                         ], style={"marginTop": "25px"}),
@@ -101,30 +95,49 @@ layout = dbc.Col([
                                             html.Br(),
                                             dbc.Button("Adicionar", className="btn btn-success", id="add-category-receita", style={"margin-top": "20px"}),
                                             html.Br(),
-                                            html.Div(id="category-div-add-receita", style={}),
+                                            html.Div([
+                                                dbc.Alert(
+                                                    id="category-div-add-receita",
+                                                    is_open=False,
+                                                    duration=5000,
+                                                    color=""
+                                                ),
+                                            ], style={"padding-top": "20px"}),
                                         ], width=6),
 
                                         dbc.Col([
                                             html.Legend("Excluir categoria", style={"color": "red"}),
                                             dbc.Checklist(
                                                 id='checklist-selected-style-receita',
-                                                options=[{'label': i, 'value': i} for i in cat_receitas],
+                                                options=[],
                                                 value=[],
                                                 label_checked_style={"color": "red"},
                                                 input_checked_style={"backgroudColor": "blue", "borderColor": "Orange"},
                                             ),
-                                            dbc.Button('Remover', color='warning', id='remove-category-receita', style={"margin-top": "20px"})
+                                            dbc.Button('Remover', color='warning', id='remove-category-receita', style={"margin-top": "20px"}),
+                                            html.Div([
+                                                dbc.Alert(
+                                                    id="category-div-remove-receita",
+                                                    is_open=False,
+                                                    duration=5000,
+                                                    color=""
+                                                ),
+                                            ], style={"padding-top": "20px"}),
                                         ], width=6)
                                     ])
                                 ], title='Adicionar/Remover Categoria')
 
-                            ], flush=True, start_collapsed=True, id='accordion-receita'),
+                            ],  start_collapsed=True, id='accordion-receita'),
+                            dbc.Button('Adicionar Receita', color='success', id='salvar-receita-btn', style={"margin-top": "20px"}),
+                            html.Div([
+                                dbc.Alert(
+                                    id="alert-receita",
+                                    is_open=False,
+                                    duration=5000,
+                                    color=""
+                                ),
+                            ], style={"padding-top": "20px"}),
                             
-                            html.Div(id='teste-receita', style={"padding-top": "20px"}),
-                            dbc.ModalFooter([
-                                dbc.Button("Adicionar Receita", id="salvar-receita", color="success"),
-                                dbc.Popover(dbc.PopoverBody("Receita Salva"), target="salvar-receita", placement="left", trigger="click"),
-                            ])
                         ], style={"marginTop": "25px"})
                     ])
                 ], style={"background-color": "rgba(17, 140, 79, 0,05)"},
@@ -173,9 +186,10 @@ layout = dbc.Col([
 
                             dbc.Col([
                                 dbc.Label('Categoria da Despesa'),
-                                dbc.Select(id='select-despesa', 
-                                           options=[{'label': i, 'value': i} for i in cat_despesas], 
-                                           value=cat_despesas[0])
+                                dbc.Select(
+                                            id='select-despesa', 
+                                            options=[], 
+                                           )
                             ], width=4),
 
                         ], style={"marginTop": "25px"}),
@@ -191,29 +205,47 @@ layout = dbc.Col([
                                             html.Br(),
                                             dbc.Button("Adicionar", className="btn btn-success", id="add-category-despesa", style={"margin-top": "20px"}),
                                             html.Br(),
-                                            html.Div(id="category-div-add-despesa", style={}),
+                                            html.Div([
+                                                dbc.Alert(
+                                                    id="category-div-add-despesa",
+                                                    is_open=False,
+                                                    duration=5000,
+                                                    color=""
+                                                ),
+                                            ], style={"padding-top": "20px"}),
                                         ], width=6),
 
                                         dbc.Col([
                                             html.Legend("Excluir categoria", style={"color": "red"}),
                                             dbc.Checklist(
                                                 id='checklist-selected-style-despesa',
-                                                options=[{'label': i, 'value': i} for i in cat_despesas],
+                                                options=[],
                                                 value=[],
                                                 label_checked_style={"color": "red"},
                                                 input_checked_style={"backgroudColor": "blue", "borderColor": "Orange"},
                                             ),
-                                            dbc.Button('Remover', color='warning', id='remove-category-despesa', style={"margin-top": "20px"})
+                                            dbc.Button('Remover', color='warning', id='remove-category-despesa', style={"margin-top": "20px"}),
+                                            html.Div([
+                                                dbc.Alert(
+                                                    id="category-div-remove-despesa",
+                                                    is_open=False,
+                                                    duration=5000,
+                                                    color=""
+                                                ),
+                                            ], style={"padding-top": "20px"}),
                                         ], width=6)
                                     ])
                                 ], title='Adicionar/Remover Categoria')
                             ], flush=True, start_collapsed=True, id='accordion-despesa'),
-                            
-                            html.Div(id='teste-despesa', style={"paddingTop": "20px"}),
-                            dbc.ModalFooter([
-                                dbc.Button("Adicionar despesa", id="salvar-despesa", color="success"),
-                                dbc.Popover(dbc.PopoverBody("Despesa Salva"), target="salvar-despesa", placement="left", trigger="click"),
-                            ])
+                            dbc.Button('Adicionar Despesa', color='success', id='salvar-despesa-btn', style={"margin-top": "20px"}),
+                            html.Div([
+                                dbc.Alert(
+                                    id="alert-despesa",
+                                    is_open=False,
+                                    duration=5000,
+                                    color=""
+                                ),
+                            ], style={"padding-top": "20px"}),
                         ], style={"marginTop": "25px"})
                     ])
                 ], style={"background-color": "rgba(17, 140, 79, 0,05)"},
@@ -232,191 +264,9 @@ layout = dbc.Col([
                 ], vertical=True, pills=True, id='nav_buttons', style={"marginBottom": "50px"}),
                 
                 dbc.Button("Logout", id="logout_button"),
+                
 
 
 ], id='sidebar_completa')
 
 
-
-# =========  Callbacks  =========== #
-# Pop-up receita
-@app.callback(
-    Output('modal-novo-receita', 'is_open'),
-    Input('open-novo-receita', 'n_clicks'),
-    State('modal-novo-receita', 'is_open')
-)
-def toggle_modal(n1, is_open):
-    if n1:
-        return not is_open
-
-
-# Pop-up Despesa
-@app.callback(
-    Output('modal-novo-despesa', 'is_open'),
-    Input('open-novo-despesa', 'n_clicks'),
-    State('modal-novo-despesa', 'is_open')
-)
-def toggle_modal(n1, is_open):
-    if n1:
-        return not is_open
-
-
-@app.callback(
-    Output('store-receitas', 'data', allow_duplicate=True),
-
-    Input('salvar-receita', 'n_clicks'),
-    [
-        State('txt-receita', 'value'),
-        State('valor-receita', 'value'),
-        State('date-receitas', 'date'),
-        State('swtches-input-receita', 'value'),
-        State('select-receita', 'value'),
-        State('store-receitas', 'data'),
-    ],
-    prevent_initial_call='initial_duplicate'
-)
-def salve_form_receita(n, descricao, valor, date, switches, categoria, dict_receitas):
-    # import pdb
-    # pdb.set_trace()
-
-    df_receitas = pd.DataFrame(dict_receitas)
-
-    if n and not(valor == "" or valor == None):
-        valor = round(float(valor), 2)
-        date = pd.to_datetime(date).date()
-        categoria = categoria[0] if type(categoria) == list else categoria
-        parcelado = 1 if 1 in switches else 0
-        fixo = 1 if 2 in switches else 0
-
-        df_receitas.loc[df_receitas.shape[0]] = [descricao, categoria, date, valor, parcelado, fixo]
-        df_receitas.to_csv(f"{path}/df_receitas.csv")
-    
-    data_return = df_receitas.to_dict()
-    return data_return
-
-
-
-@app.callback(
-    Output('store-despesas', 'data'),
-
-    Input('salvar-despesa', 'n_clicks'),
-    [
-        State('txt-despesa', 'value'),
-        State('valor-despesa', 'value'),
-        State('date-despesas', 'date'),
-        State('swtches-input-despesa', 'value'),
-        State('select-despesa', 'value'),
-        State('store-despesas', 'data'),
-    ]
-)
-def salve_form_despesa(n, descricao, valor, date, switches, categoria, dict_despesas):
-    # import pdb
-    # pdb.set_trace()
-
-    df_despesas = pd.DataFrame(dict_despesas)
-
-    if n and not(valor == "" or valor == None):
-        valor = round(float(valor), 2)
-        date = pd.to_datetime(date).date()
-        categoria = categoria[0] if type(categoria) == list else categoria
-        parcelado = 1 if 1 in switches else 0
-        fixo = 1 if 2 in switches else 0
-
-        df_despesas.loc[df_despesas.shape[0]] = [descricao, categoria, date, valor, parcelado, fixo]
-        df_despesas.to_csv(f"{path}/df_despesas.csv")
-    
-    data_return = df_despesas.to_dict()
-    return data_return
-
-
-@app.callback(
-    [
-        Output("select-receita", "options"),
-        Output("checklist-selected-style-receita", "options"),
-        Output("checklist-selected-style-receita", "value"),
-        Output("store-cat-receitas", "data")
-    ],
-
-    [
-        Input("add-category-receita", "n_clicks"),
-        Input("remove-category-receita", "n_clicks")
-    ],
-
-    [
-        State("input-add-receita", "value"),
-        State("checklist-selected-style-receita", "value"),
-        State("store-cat-receitas", "data")
-    ]
-)
-def add_category_receita(n, n2, txt, check_delete, data):
-    # import pdb
-    # pdb.set_trace()
-
-    cat_receita = list(data["Categoria"].values())
-
-    if n and not (txt == "" or txt == None):
-        cat_receita = cat_receita + [txt] if txt not in cat_receita else cat_receita
-
-    if n2 and len(check_delete) > 0:
-        cat_receita = [i for i in cat_receita if i not in check_delete]
-
-    opt_receita = [{"label": i, "value": i} for i in cat_receita]
-    df_cat_receita = pd.DataFrame(cat_receita, columns=['Categoria'])
-    df_cat_receita.to_csv(f"{path}/df_cat_receitas.csv")
-    data_return = df_cat_receita.to_dict()
-
-    return [opt_receita, opt_receita, [], data_return]
-
-
-@app.callback(
-    [
-        Output("select-despesa", "options"),
-        Output("checklist-selected-style-despesa", "options"),
-        Output("checklist-selected-style-despesa", "value"),
-        Output("store-cat-despesas", "data")
-    ],
-
-    [
-        Input("add-category-despesa", "n_clicks"),
-        Input("remove-category-despesa", "n_clicks")
-    ],
-
-    [
-        State("input-add-despesa", "value"),
-        State("checklist-selected-style-despesa", "value"),
-        State("store-cat-despesas", "data")
-    ]
-)
-def add_category_despesa(n, n2, txt, check_delete, data):
-    # import pdb
-    # pdb.set_trace()
-
-    cat_despesa = list(data["Categoria"].values())
-
-    if n and not (txt == "" or txt == None):
-        cat_despesa = cat_despesa + [txt] if txt not in cat_despesa else cat_despesa
-
-    if n2 and len(check_delete) > 0:
-        cat_despesa = [i for i in cat_despesa if i not in check_delete]
-
-    opt_despesa = [{"label": i, "value": i} for i in cat_despesa]
-    df_cat_despesa = pd.DataFrame(cat_despesa, columns=['Categoria'])
-    df_cat_despesa.to_csv(f"{path}/df_cat_despesas.csv")
-    data_return = df_cat_despesa.to_dict()
-
-    return [opt_despesa, opt_despesa, [], data_return]
-
-
-@app.callback(
-    Output('data-url', 'pathname'),
-    Input('logout_button', 'n_clicks'),
-    )
-def successful(n_clicks):
-    if n_clicks == None:
-        raise PreventUpdate
-    
-    if current_user.is_authenticated:
-        logout_user()
-        return '/login'
-    else: 
-        return '/login'

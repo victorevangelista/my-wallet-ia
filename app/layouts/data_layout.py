@@ -7,6 +7,8 @@ content = html.Div(id="page-content-dash")
 def render_layout(username):
     return dbc.Container(children=[
             dcc.Location(id="base-url-data", refresh=True),
+            dcc.Store(id="receitas-update-trigger", data=0),
+            dcc.Store(id="despesas-update-trigger", data=0),
             dbc.Row([
                 dbc.Col([
                     dcc.Location(id='data-url'),

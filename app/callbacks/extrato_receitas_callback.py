@@ -87,17 +87,19 @@ def register_callbacks(dash_app):
     @dash_app.callback(
             [
                 Output('alert-auto', 'is_open', allow_duplicate=True), 
-                Output('alert-auto', 'children', allow_duplicate=True)
+                Output('alert-auto', 'children', allow_duplicate=True),
+                Output("receitas-update-trigger", "data"),
             ],
             [
                 Input('tbl-receita', 'cellValueChanged'),
             ],
             [
                 State("alert-auto", "is_open"),
+                State("receitas-update-trigger", "data")
             ],
             prevent_initial_call='initial_duplicate'
         )
-    def update_data(cell_changed, is_open ):
+    def update_data(cell_changed, is_open, update_trigger ):
         if cell_changed:
             id = cell_changed[0]['data']['id']
             descricao = cell_changed[0]['data']['descricao']
@@ -109,13 +111,12 @@ def register_callbacks(dash_app):
 
             success, result = update_receita(id, descricao, categoria, data, valor, parcelado, fixo)
 
-            return not is_open, f"{result} Linha: {cell_changed[0]['rowId']}" if success else result
-        return (is_open, "Edite a tabela")
-
+            return not is_open, f"{result} Linha: {cell_changed[0]['rowId']}" if success else result, update_trigger + 1
+        return is_open, "Edite a tabela", update_trigger 
 
     @dash_app.callback(
         Output('bar-graph-receitas', 'figure'),
-        Input("base-url", "pathname"),
+        Input("receitas-update-trigger", "data"),
     )
     def bar_graph(_):
         receitas = buscar_receitas()
@@ -127,7 +128,7 @@ def register_callbacks(dash_app):
 
     @dash_app.callback(
         Output('valor-receitas-card', 'children'),
-        Input("base-url", "pathname"),
+        Input("receitas-update-trigger", "data"),
     )
     def display_desp(_):
         receitas = buscar_receitas()

@@ -29,6 +29,10 @@ body {
     animation: gradient 15s ease infinite;
 }
 
+h2{
+    color: #ffffff;
+}
+
 #sidebar_completa{
     height: 100vh;
     margin: 0px;

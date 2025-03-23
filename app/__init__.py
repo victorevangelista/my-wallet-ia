@@ -61,7 +61,7 @@ def create_app():
         return Users.query.get(int(user_id))
 
     # Importa callbacks
-    from app.callbacks import login_callbacks, register_callbacks, sidebar_callbacks, dashboard_callbacks, extrato_despesas_callback, extrato_receitas_callback
+    from app.callbacks import login_callbacks, register_callbacks, sidebar_callbacks, dashboard_callbacks, extrato_despesas_callback, extrato_receitas_callback, import_ofx_callbacks
 
     # Registrando callbacks após a criação do Dash
     login_callbacks.register_callbacks(dash_app)
@@ -71,6 +71,7 @@ def create_app():
     dashboard_callbacks.register_callbacks(dash_app)
     extrato_despesas_callback.register_callbacks(dash_app)
     extrato_receitas_callback.register_callbacks(dash_app)
+    import_ofx_callbacks.register_callbacks(dash_app)
 
     from app.pages import login_page, register_page, not_found_page, data_page
     from dash.dependencies import Input, Output, State
@@ -92,7 +93,7 @@ def create_app():
             return data_page(current_user.username), "/data"
         
         # Se o usuário não estiver logado e tentar acessar /data, redireciona para /login
-        if pathname in ["/data", "/extrato-despesas", "/extrato-receitas"]:
+        if pathname in ["/data", "/extrato-despesas", "/extrato-receitas", "/import-ofx"]:
             if current_user.is_authenticated:
                 return data_page(current_user.username), no_update
             return login_page(), "/login"

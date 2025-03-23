@@ -3,6 +3,7 @@ from dash import no_update
 from app.components.dashboard import layout as dashboard
 from app.components.extrato_despesas import layout as extrato_despesas
 from app.components.extrato_receitas import layout as extrato_receitas
+from app.components.import_ofx import layout as import_ofx
 
 def register_callbacks(dash_app):
     @dash_app.callback(
@@ -20,3 +21,6 @@ def register_callbacks(dash_app):
         
         if pathname == '/extrato-receitas':
             return extrato_receitas
+        
+        if pathname == '/import-ofx':
+            return import_ofx

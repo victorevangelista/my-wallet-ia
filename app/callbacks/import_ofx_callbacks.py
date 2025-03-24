@@ -137,7 +137,54 @@ def register_callbacks(dash_app):
 
         row_data_df = pd.DataFrame(row_data)
         try:
-            row_data_df["Categoria"] = "Nova Classificação"
+
+            #=============
+            #LLM
+            from langchain_groq import ChatGroq
+            from langchain_core.prompts import PromptTemplate
+            from dotenv import load_dotenv, find_dotenv
+
+            _ = load_dotenv(find_dotenv())
+
+            template = """
+            Você é um analista de dados, trabalhando em um projeto de limpeza de dados.
+            Seu trabalho é escolher uma categoria para cada lançamento finenceiro que vou te enviar.
+
+            Todos são transações financeiras de uma pessoa física.
+
+            Escolha uma dentre as seguintes categorias:
+            - Alimentação
+            - Receitas
+            - Rendimentos
+            - Saúde
+            - Mercado
+            - Educação
+            - Compras
+            - Transporte
+            - Investimento
+            - Transferência para terceiros
+            - Telefone
+            - Moradia
+
+            Escolha a categoria deste item:
+            {text}
+
+            Responda com apenas a categoria, sem potiação ifens e outros espaços que possam existir no inicio e no fim.
+            """
+
+            prompt = PromptTemplate.from_template(template=template)
+            chat = ChatGroq(model="llama-3.1-8b-instant")
+            chain = prompt | chat
+
+            categoria = []
+
+            for row in row_data:
+                result = chain.invoke(row["Descrição"]).content
+                categoria += [result]
+                print(result)
+
+            row_data_df["Categoria"] = categoria
+            
             return True, "Importação realizada com sucesso!", "success", row_data_df.to_dict("records")
 
         except Exception as e:

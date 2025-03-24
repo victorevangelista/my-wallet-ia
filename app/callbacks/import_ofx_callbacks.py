@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import dash_ag_grid as dag
 from dash import Input, Output, State, dcc, html, ctx
@@ -8,6 +9,13 @@ import ofxparse  # Biblioteca para processar OFX
 from app import db
 from app.models.despesas import Despesas
 from app.models.receitas import Receitas
+from dotenv import load_dotenv, find_dotenv
+
+# Carrega as variáveis de ambiente do .env
+load_dotenv(find_dotenv())
+
+# Obtém o caminho do prompt a partir do .env
+PROMPT_FILE = os.getenv("PROMPT_FILE", "config/prompt_classificacao.md")  # Default se não encontrar
 
 def register_callbacks(dash_app):
     
@@ -118,7 +126,52 @@ def register_callbacks(dash_app):
             db.session.rollback()
             return True, f"Erro na importação: {str(e)}", "danger"
         
-    
+    # Callback para abrir e fechar o modal
+    @dash_app.callback(
+        Output("prompt-modal", "is_open"),
+        Input("open-prompt-modal", "n_clicks"),
+        Input("close-prompt-modal", "n_clicks"),
+        State("prompt-modal", "is_open"),
+        prevent_initial_call=True
+    )
+    def toggle_prompt_modal(open_click, close_click, is_open):
+        if ctx.triggered_id == "open-prompt-modal":
+            return True
+        elif ctx.triggered_id == "close-prompt-modal":
+            return False
+        return is_open
+
+    # Callback para carregar o prompt salvo no arquivo Markdown
+    @dash_app.callback(
+        Output("prompt-textarea", "value"),
+        Input("open-prompt-modal", "n_clicks"),
+        prevent_initial_call=True
+    )
+    def load_prompt(_):
+        if os.path.exists(PROMPT_FILE):
+            with open(PROMPT_FILE, "r", encoding="utf-8") as file:
+                return file.read()
+        return "O prompt ainda não foi definido."
+
+    # Callback para salvar as alterações do prompt no arquivo Markdown
+    @dash_app.callback(
+        Output("import-alert", "is_open", allow_duplicate=True),
+        Output("import-alert", "children", allow_duplicate=True),
+        Output("import-alert", "color", allow_duplicate=True),
+        Input("save-prompt", "n_clicks"),
+        State("prompt-textarea", "value"),
+        prevent_initial_call=True
+    )
+    def save_prompt(_, prompt_text):
+        try:
+            os.makedirs(os.path.dirname(PROMPT_FILE), exist_ok=True)
+            with open(PROMPT_FILE, "w", encoding="utf-8") as file:
+                file.write(prompt_text)
+            return True, "Prompt salvo com sucesso!", "success"
+        except Exception as e:
+            return True, f"Erro ao salvar prompt: {str(e)}", "danger"
+        
+
     # Callback para classificar os dados da importação
     @dash_app.callback(
         [
@@ -146,31 +199,14 @@ def register_callbacks(dash_app):
 
             _ = load_dotenv(find_dotenv())
 
-            template = """
-            Você é um analista de dados, trabalhando em um projeto de limpeza de dados.
-            Seu trabalho é escolher uma categoria para cada lançamento finenceiro que vou te enviar.
+            # Carrega o prompt salvo no arquivo Markdown
+            if os.path.exists(PROMPT_FILE):
+                with open(PROMPT_FILE, "r", encoding="utf-8") as file:
+                    template = file.read()
+                    # print(template)
+            else:
+                return True, f"Defina um prompt adequado para classificação das transações.", "danger", row_data
 
-            Todos são transações financeiras de uma pessoa física.
-
-            Escolha uma dentre as seguintes categorias:
-            - Alimentação
-            - Receitas
-            - Rendimentos
-            - Saúde
-            - Mercado
-            - Educação
-            - Compras
-            - Transporte
-            - Investimento
-            - Transferência para terceiros
-            - Telefone
-            - Moradia
-
-            Escolha a categoria deste item:
-            {text}
-
-            Responda com apenas a categoria, sem potiação ifens e outros espaços que possam existir no inicio e no fim.
-            """
 
             prompt = PromptTemplate.from_template(template=template)
             chat = ChatGroq(model="llama-3.1-8b-instant")

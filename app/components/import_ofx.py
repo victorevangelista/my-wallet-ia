@@ -26,6 +26,30 @@ layout = dbc.Container([
         html.Br(),
 
         dbc.Button("Atuaizar Classificação", id="classifica-import", color="success", className="mt-2"),
+        # Botão para abrir o modal de edição do prompt
+        dbc.Button(
+            html.I(className="fa fa-cog", title="Editar Prompt de Classificação"),  # Ícone de engrenagem
+            id="open-prompt-modal",
+            color="primary",
+            className="mt-2",
+            style={"fontSize": "12px"}  # Ajusta o tamanho do botão
+        ),
+
+        # Modal para editar o prompt
+        dbc.Modal([
+            dbc.ModalHeader("Editar Prompt de Classificação"),
+            dbc.ModalBody([
+                dcc.Textarea(
+                    id="prompt-textarea",
+                    style={"width": "100%", "height": "300px"},
+                )
+            ]),
+            dbc.ModalFooter([
+                dbc.Button("Salvar", id="save-prompt", color="success"),
+                dbc.Button("Fechar", id="close-prompt-modal", color="secondary")
+            ])
+        ], id="prompt-modal", is_open=False),
+
 
         # Tabela para Visualização dos Dados Importados
         html.Div(id="ofx-grid-container", children=[]),

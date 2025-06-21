@@ -1,36 +1,44 @@
-from app import db
-from app.models.receitas import Receitas
+from app.models.financial_data import Receita as FinancialReceita, CatReceitas
 
-def salvar_receita(descricao, categoria, data, valor, parcelado, fixo):
+def salvar_receita_por_usuario(user_session, descricao, categoria_nome, data, valor, parcelado, fixo):
     try:
-        nova_receita = Receitas(
+        # Busca o ID da categoria pelo nome, específico para receitas
+        categoria_obj = None
+        if categoria_nome:
+            categoria_obj = user_session.query(CatReceitas).filter_by(categoria=categoria_nome).first()
+        
+        categoria_id_val = categoria_obj.id if categoria_obj else None
+
+        nova_receita = FinancialReceita(
             descricao=descricao,
-            categoria=categoria,
+            categoria_id=categoria_id_val,
             data=data,
             valor=float(valor),
             parcelado=parcelado,
             fixo=fixo
         )
-        db.session.add(nova_receita)
-        db.session.commit()
+        user_session.add(nova_receita)
+        user_session.commit()
         return True, "Receita salva com sucesso!"
     except Exception as e:
-        db.session.rollback()
+        user_session.rollback()
+        print(f"Erro ao salvar receita: {str(e)}")
         return False, f"Erro ao salvar receita: {str(e)}"
 
 
-def buscar_receitas():
+def buscar_receitas_por_usuario(user_session):
     """
     Retorna uma lista de todas as receitas cadastradas no banco de dados.
     """
     try:
-        receitas = Receitas.query.all()  # Busca todas as receitas
+        # Realiza um join com Categoria para obter o nome da categoria
+        receitas = user_session.query(FinancialReceita).outerjoin(FinancialReceita.categoria).all()
         return [
             {
                 "id": receita.id,
                 "descricao": receita.descricao,
-                "categoria": receita.categoria,
-                "data": receita.data.strftime("%d/%m/%Y"),  # Formata a data
+                "categoria": receita.categoria.categoria if receita.categoria else "Sem Categoria",
+                "data": receita.data.strftime("%d/%m/%Y") if receita.data else None,
                 "valor": receita.valor,
                 "parcelado": receita.parcelado,
                 "fixo": receita.fixo,
@@ -38,10 +46,11 @@ def buscar_receitas():
             for receita in receitas
         ]
     except Exception as e:
-        return f"Erro ao buscar receitas: {str(e)}"
+        print(f"Erro ao buscar receitas: {str(e)}")
+        return [] # Retorna lista vazia em caso de erro
 
 
-def update_receita(receita_id, descricao=None, categoria=None, data=None, valor=None, parcelado=None, fixo=None):
+def update_receita_por_usuario(user_session, receita_id, descricao=None, categoria_nome=None, data=None, valor=None, parcelado=None, fixo=None):
     """
     Atualiza uma receita existente no banco de dados.
     
@@ -58,7 +67,7 @@ def update_receita(receita_id, descricao=None, categoria=None, data=None, valor=
         - (bool, str): Sucesso ou falha e mensagem de retorno.
     """
     try:
-        receita = Receitas.query.get(receita_id)
+        receita = user_session.query(FinancialReceita).get(receita_id)
         
         if not receita:
             return False, "Erro: Receita não encontrada."
@@ -66,19 +75,24 @@ def update_receita(receita_id, descricao=None, categoria=None, data=None, valor=
         # Atualiza apenas os campos informados (que não são None)
         if descricao is not None:
             receita.descricao = descricao
-        if categoria is not None:
-            receita.categoria = categoria
+        if categoria_nome is not None:
+            categoria_obj = None
+            if categoria_nome: # Evita erro se categoria_nome for None ou ""
+                categoria_obj = user_session.query(CatReceitas).filter_by(categoria=categoria_nome).first()
+            receita.categoria_id = categoria_obj.id if categoria_obj else None
         if data is not None:
-            receita.data = data
+            receita.data = data # Assume que 'data' já é um objeto date
         if valor is not None:
             receita.valor = float(valor)
         if parcelado is not None:
             receita.parcelado = parcelado
         if fixo is not None:
             receita.fixo = fixo
-
-        db.session.commit()
+        
+        user_session.add(receita) # Adiciona à sessão para garantir que as mudanças sejam rastreadas
+        user_session.commit()
         return True, "Receita atualizada com sucesso!"
     except Exception as e:
-        db.session.rollback()
+        user_session.rollback()
+        print(f"Erro ao atualizar receita: {str(e)}")
         return False, f"Erro ao atualizar receita: {str(e)}"

@@ -1,7 +1,7 @@
 from dash import html, dcc
 import dash_bootstrap_components as dbc
 from datetime import datetime, date
-from app.models.categoria import CatDespesas, CatReceitas
+from app.models.financial_data import CatDespesas, CatReceitas
 
 # Carregar categorias do banco
 def get_categorias_despesas():
@@ -236,7 +236,7 @@ layout = dbc.Col([
                                         ], width=6)
                                     ])
                                 ], title='Adicionar/Remover Categoria')
-                            ], flush=True, start_collapsed=True, id='accordion-despesa'),
+                            ], start_collapsed=True, id='accordion-despesa'),
                             dbc.Button('Adicionar Despesa', color='success', id='salvar-despesa-btn', style={"margin-top": "20px"}),
                             html.Div([
                                 dbc.Alert(

@@ -2,7 +2,8 @@ from dash.dependencies import Input, Output, State
 from werkzeug.security import generate_password_hash
 from app.models.user import Users
 from app import db
-from dash import no_update  
+from dash import no_update
+from app.db_utils import init_user_db_tables # Importar a função de inicialização
 
 def register_callbacks(dash_app):
     @dash_app.callback(
@@ -31,13 +32,18 @@ def register_callbacks(dash_app):
             return "", no_update, no_update, no_update, no_update, no_update, no_update
         
         if username and password and email:
-            hashed_password = generate_password_hash(password)
+            hashed_password = generate_password_hash(password, method="pbkdf2:sha256:600000")
             user = Users(username=username, password=hashed_password, email=email)
             try:
                 db.session.add(user)
                 db.session.commit()
+                # Após o commit do usuário, inicialize as tabelas do seu banco de dados de dados
+                # user.id estará disponível após o commit
+                init_user_db_tables(user.id)
                 return "success", not is_open, "Usuário cadastrado com sucesso!", "success", "", "", ""
-            except:
+            except Exception as e: # Seja mais específico com as exceções se possível (ex: IntegrityError)
                 db.session.rollback()
-                return "error", not is_open, "Erro: Login ou e-mail já cadastrado.", "danger", no_update, no_update, no_update
+                # print(f"Erro no registro: {e}") # Para debug
+                # Verificar se é um erro de constraint (usuário/email já existe)
+                return "error", not is_open, "Erro: Login ou e-mail já cadastrado ou outro erro ocorreu.", "danger", no_update, no_update, no_update
         return "error", not is_open, "Erro: Faltou o preenchimento de algum campo.", "danger", no_update, no_update, no_update

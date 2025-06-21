@@ -6,10 +6,14 @@ import dash_bootstrap_components as dbc
 import base64
 import io
 import ofxparse  # Biblioteca para processar OFX
-from app import db
-from app.models.despesas import Despesas
-from app.models.receitas import Receitas
+# Importações atualizadas para usar serviços e sessão do usuário
+from flask_login import current_user
+from app import get_current_user_db_session
+from app.services.despesa_service import salvar_despesa_por_usuario
+from app.services.receita_service import salvar_receita_por_usuario
+
 from dotenv import load_dotenv, find_dotenv
+
 
 # Carrega as variáveis de ambiente do .env
 load_dotenv(find_dotenv())
@@ -84,47 +88,63 @@ def register_callbacks(dash_app):
         State("ofx-grid", "rowData"),
         prevent_initial_call=True
     )
-    def confirmar_importacao(n_clicks, row_data):
+    def salvar_transacoes_ofx_no_db(n_clicks, row_data): # Nome da função alterado para clareza
         if not row_data:
             return True, "Nenhum dado para importar.", "danger"
+
+        if not current_user.is_authenticated:
+            return True, "Usuário não autenticado. Faça login para importar.", "warning"
+
+        user_session = get_current_user_db_session()
+        if not user_session:
+            return True, "Erro de sessão do usuário. Não foi possível importar.", "danger"
+
+        erros_importacao = []
+        sucessos_importacao = 0
 
         try:
             for row in row_data:
                 data_transacao = pd.to_datetime(row["Data"], format="%d/%m/%Y")
                 descricao = row["Descrição"]
                 valor = abs(row["Valor"])  # Valor absoluto para evitar duplicação de sinal
-                categoria = row["Categoria"]
+                categoria_nome = row["Categoria"] # Nome da categoria, ex: "Importado OFX"
 
                 if row["Tipo"] == "Receita":
-                    valor = abs(row["Valor"])  # Mantém positivo
-                    nova_receita = Receitas(
+                    success, message = salvar_receita_por_usuario(
+                        user_session,
                         descricao=descricao,
-                        categoria=categoria,
+                        categoria_nome=categoria_nome,
                         data=data_transacao,
                         valor=valor,
                         parcelado=False,
                         fixo=False
                     )
-                    db.session.add(nova_receita)
-                
                 elif row["Tipo"] == "Despesa":
-                    valor = abs(row["Valor"])  # Converte negativo para positivo
-                    nova_despesa = Despesas(
+                    success, message = salvar_despesa_por_usuario(
+                        user_session,
                         descricao=descricao,
-                        categoria=categoria,
+                        categoria_nome=categoria_nome,
                         data=data_transacao,
                         valor=valor,
                         parcelado=False,
                         fixo=False
                     )
-                    db.session.add(nova_despesa)
+                else:
+                    success = False
+                    message = f"Tipo de transação desconhecido: {row['Tipo']} para {descricao}"
 
-            db.session.commit()
-            return True, "Importação realizada com sucesso!", "success"
+                if success:
+                    sucessos_importacao += 1
+                else:
+                    erros_importacao.append(f"Falha ao salvar '{descricao}': {message}")
+
+            if erros_importacao:
+                return True, f"{sucessos_importacao} transações importadas. Erros: {'; '.join(erros_importacao)}", "warning"
+            return True, f"{sucessos_importacao} transações importadas com sucesso!", "success"
 
         except Exception as e:
-            db.session.rollback()
-            return True, f"Erro na importação: {str(e)}", "danger"
+            # Rollback é tratado dentro de cada chamada de serviço
+            return True, f"Erro geral durante a importação: {str(e)}", "danger"
         
     # Callback para abrir e fechar o modal
     @dash_app.callback(
@@ -184,7 +204,7 @@ def register_callbacks(dash_app):
         State("ofx-grid", "rowData"),
         prevent_initial_call=True
     )
-    def confirmar_importacao(n_clicks, row_data):
+    def classificar_transacoes_importadas(n_clicks, row_data): # Nome da função alterado para clareza
         if not row_data:
             return True, "Nenhum dado para classificar.", "danger", row_data
 
@@ -224,5 +244,5 @@ def register_callbacks(dash_app):
             return True, "Importação realizada com sucesso!", "success", row_data_df.to_dict("records")
 
         except Exception as e:
-            db.session.rollback()
+            # Não há db.session aqui, pois este callback não salva no banco diretamente
             return True, f"Erro na importação: {str(e)}", "danger", row_data

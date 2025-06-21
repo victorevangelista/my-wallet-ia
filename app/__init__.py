@@ -1,10 +1,12 @@
-from flask import Flask
+from flask import Flask, g
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_login import current_user
 from flask_migrate import Migrate
 import dash
 import os
+
+from app.db_utils import get_raw_user_db_session, init_user_db_tables
 
 from app.callbacks import data_callbacks
 
@@ -14,10 +16,16 @@ migrate = Migrate()  # Instância do Flask-Migrate
 
 def create_app():
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))  # Obtém o diretório do app
-    DB_PATH = os.path.join(BASE_DIR, "..", "instance", "data.sqlite")  # Caminho correto
+    
+    # Caminho para o banco de dados principal de usuários
+    # Garante que a pasta 'instance' exista
+    INSTANCE_FOLDER_PATH = os.path.join(BASE_DIR, "..", "instance")
+    if not os.path.exists(INSTANCE_FOLDER_PATH):
+        os.makedirs(INSTANCE_FOLDER_PATH, exist_ok=True)
+    DB_PATH = os.path.join(INSTANCE_FOLDER_PATH, "data.sqlite")
 
     # Inicializa o Flask
-    app = Flask(__name__)
+    app = Flask(__name__, instance_path=INSTANCE_FOLDER_PATH) # Define instance_path
     app.config["SECRET_KEY"] = os.urandom(12)
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -28,8 +36,9 @@ def create_app():
     migrate.init_app(app, db)  # Integrando Flask-Migrate
 
     with app.app_context():
-        from app import models  # Importa os modelos para serem reconhecidos
-        db.create_all()  # Apenas para primeira inicialização
+        # Importa apenas os modelos de usuário para o DB principal
+        from app.models.user import Users
+        db.create_all()  # Cria tabelas de usuário (ex: Users) se não existirem
 
     # Inicializa o Dash
     import dash_bootstrap_components as dbc
@@ -99,10 +108,36 @@ def create_app():
             return login_page(), "/login"
 
         # Páginas padrão (Login e Registro)
-        if pathname in ["/login", "/"]:
+        if pathname == "/login" or pathname == "/": # Adicionado '/' para redirecionar para login
             return login_page(), no_update
         elif pathname == "/register":
             return register_page(), no_update
         return not_found_page(), no_update
     
+    @app.before_request
+    def before_request_user_db_session():
+        """Cria uma sessão de BD para o usuário logado e a armazena em flask.g."""
+        if current_user and current_user.is_authenticated:
+            user_id = current_user.id
+            session_attr = f"user_db_session_{user_id}"
+            if not hasattr(g, session_attr):
+                setattr(g, session_attr, get_raw_user_db_session(user_id))
+
+    @app.teardown_appcontext
+    def teardown_user_db_session(exception=None):
+        """Fecha a sessão de BD do usuário armazenada em flask.g."""
+        if current_user and current_user.is_authenticated:
+            user_id = current_user.id
+            session_attr = f"user_db_session_{user_id}"
+            if hasattr(g, session_attr):
+                session = getattr(g, session_attr)
+                session.close()
+                # print(f"Sessão do BD do usuário {user_id} fechada.") # Para debug
+
     return app, dash_app
+
+def get_current_user_db_session():
+    """Helper para obter a sessão de BD do usuário atual a partir de flask.g."""
+    if current_user and current_user.is_authenticated:
+        return getattr(g, f"user_db_session_{current_user.id}", None)
+    return None

@@ -95,3 +95,16 @@ def update_despesa_por_usuario(user_session, despesa_id, descricao=None, categor
         user_session.rollback()
         print(f"Erro ao atualizar despesa: {str(e)}")
         return False, f"Erro ao atualizar despesa: {str(e)}"
+
+
+def excluir_despesa_por_usuario(user_session, despesa_id):
+    try:
+        despesa = user_session.query(FinancialDespesa).filter_by(id=despesa_id).first()
+        if despesa:
+            user_session.delete(despesa)
+            user_session.commit()
+            return True, "Excluído"
+        return False, "Despesa não encontrada"
+    except Exception as e:
+        user_session.rollback()
+        return False, str(e)

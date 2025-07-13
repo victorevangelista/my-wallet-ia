@@ -96,3 +96,15 @@ def update_receita_por_usuario(user_session, receita_id, descricao=None, categor
         user_session.rollback()
         print(f"Erro ao atualizar receita: {str(e)}")
         return False, f"Erro ao atualizar receita: {str(e)}"
+
+def excluir_receita_por_usuario(user_session, receita_id):
+    try:
+        receita = user_session.query(FinancialReceita).filter_by(id=receita_id).first()
+        if receita:
+            user_session.delete(receita)
+            user_session.commit()
+            return True, "Excluído"
+        return False, "Receita não encontrada"
+    except Exception as e:
+        user_session.rollback()
+        return False, str(e)

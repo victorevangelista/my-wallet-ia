@@ -11,6 +11,7 @@ from flask_login import current_user
 from app import get_current_user_db_session
 from app.services.despesa_service import salvar_despesa_por_usuario
 from app.services.receita_service import salvar_receita_por_usuario
+from app.services.categoria_service import adicionar_categoria_despesa_por_usuario, adicionar_categoria_receita_por_usuario
 
 from dotenv import load_dotenv, find_dotenv
 
@@ -108,6 +109,14 @@ def register_callbacks(dash_app):
                 descricao = row["Descrição"]
                 valor = abs(row["Valor"])  # Valor absoluto para evitar duplicação de sinal
                 categoria_nome = row["Categoria"] # Nome da categoria, ex: "Importado OFX"
+
+                # Garante que a categoria existe e obtém o nome correto
+                if row["Tipo"] == "Receita":
+                    # Adiciona categoria se não existir
+                    adicionar_categoria_receita_por_usuario(user_session, categoria_nome)
+                elif row["Tipo"] == "Despesa":
+                    # Adiciona categoria se não existir
+                    adicionar_categoria_despesa_por_usuario(user_session, categoria_nome)
 
                 if row["Tipo"] == "Receita":
                     success, message = salvar_receita_por_usuario(

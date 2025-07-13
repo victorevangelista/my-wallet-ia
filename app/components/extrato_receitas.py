@@ -7,7 +7,7 @@ layout = dbc.Col([
     dbc.Row([
         html.Legend("Tabela de receitas"),
         dbc.Alert(
-            id="alert-auto",
+            id="alert-auto-receita",
             is_open=False,
             duration=5000,
         ),

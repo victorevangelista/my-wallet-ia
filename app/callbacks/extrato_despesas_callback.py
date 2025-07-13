@@ -1,13 +1,16 @@
 from dash.dependencies import Input, Output, State
 import dash_ag_grid as dag
 from dash import dcc
-from dash import html
+from dash import html, Patch
+from dash import ALL
 import dash_bootstrap_components as dbc
 import plotly.express as px
 import pandas as pd
 
+
+
 # Importações atualizadas
-from app.services.despesa_service import buscar_despesas_por_usuario, update_despesa_por_usuario
+from app.services.despesa_service import buscar_despesas_por_usuario, update_despesa_por_usuario, excluir_despesa_por_usuario
 from app.services.categoria_service import buscar_cat_despesas_por_usuario
 from flask_login import current_user
 from app import get_current_user_db_session
@@ -37,11 +40,21 @@ def register_callbacks(dash_app):
         if success:
             df_cat = pd.DataFrame(despesa_cat)
             # Lista de categorias distintas
-            categorias_distintas = df_cat['categoria'].drop_duplicates().tolist()
+            if 'categoria' in df_cat.columns:
+                categorias_distintas = df_cat['categoria'].drop_duplicates().tolist()
+            else:
+                categorias_distintas = []
         else:
             categorias_distintas = []
 
         columnDefs = [
+            {
+                "headerName": "",
+                "field": "check",
+                "checkboxSelection": True,
+                "headerCheckboxSelection": True,
+                "headerCheckboxSelectionFilteredOnly": True,
+            },
             {
                 "headerName": "Descrição",
                 "field": "descricao",
@@ -86,14 +99,21 @@ def register_callbacks(dash_app):
             },
         ]
 
-        tabela = dag.AgGrid(
-                id="tbl-despesa",
-                rowData=df.to_dict("records"),
-                # columnDefs=[{"field": i} for i in df.columns],
-                columnDefs=columnDefs,
-                defaultColDef={"editable": True, "minWidth": 120},
-                dashGridOptions={"animateRows": True, 'pagination':True},
-            )
+        tabela = html.Div(
+            [
+                dcc.Input(id="input-radio-row-selection-checkbox-header-filtered-only", placeholder="Quick filter..."),
+                dbc.Button("Excluir Selecionados", id="btn-row-selection-remove", n_clicks=0, className="btn btn-danger"),
+                dag.AgGrid(
+                        id="tbl-despesa",
+                        rowData=df.to_dict("records"),
+                        # columnDefs=[{"field": i} for i in df.columns],
+                        columnDefs=columnDefs,
+                        columnSize="sizeToFit",
+                        defaultColDef={"editable": True, "filter": True, "resizable": True},
+                        dashGridOptions={"animateRows": True, 'pagination':True, "rowSelection": "multiple"},
+                    )
+            ]
+        )   
         return tabela
 
 
@@ -174,3 +194,51 @@ def register_callbacks(dash_app):
             return "R$ 0.00"
         valor = df['valor'].sum()
         return f"R$ {valor:.2f}"
+    
+
+    @dash_app.callback(
+        Output("tbl-despesa", "dashGridOptions"),
+        Input("input-radio-row-selection-checkbox-header-filtered-only", "value"),
+    )
+    def update_filter(filter_value):
+        gridOptions_patch = Patch()
+        gridOptions_patch["quickFilterText"] = filter_value
+        return gridOptions_patch
+
+    @dash_app.callback(
+        Output("tbl-despesa", "rowData"),
+        Output("alert-auto", "is_open", allow_duplicate=True),
+        Output("alert-auto", "children", allow_duplicate=True),
+        Output("alert-auto", "color", allow_duplicate=True),
+        Output("tbl-despesa", "deleteSelectedRows"),
+        Output("despesas-update-trigger", "data", allow_duplicate=True),
+        Input("btn-row-selection-remove", "n_clicks"),
+        State("tbl-despesa", "rowData"),
+        State("tbl-despesa", "selectedRows"),
+        State("despesas-update-trigger", "data"),
+        prevent_initial_call=True
+    )
+    def excluir_despesa(n_clicks, row_data, selected_rows, update_trigger):
+        # print(f"Excluir despesas: n_clicks={n_clicks}, selected_rows={selected_rows}")
+        if not n_clicks or not selected_rows:
+            return row_data, True, "Nenhuma despesa selecionada para exclusão.", "warning", False, update_trigger
+        # IDs das despesas selecionadas
+        ids_para_excluir = [row["id"] for row in selected_rows if "id" in row]
+        if not ids_para_excluir:
+            return row_data, True, "Nenhuma despesa selecionada para exclusão.", "warning", False, update_trigger
+        try:
+            user_session = get_current_user_db_session()
+            
+            erros = []
+            for despesa_id in ids_para_excluir:
+                success, message = excluir_despesa_por_usuario(user_session, despesa_id)
+                if not success:
+                    erros.append(message)
+            # Remove as linhas excluídas da grid
+            row_data = [row for row in row_data if row["id"] not in ids_para_excluir]
+            if erros:
+                return row_data, True, f"Algumas despesas não foram excluídas: {'; '.join(erros)}", "warning", False, update_trigger
+            # Se todas as despesas foram excluídas com sucesso
+            return row_data, True, "Despesas excluídas com sucesso!", "success", True, update_trigger + 1
+        except Exception as e:
+            return row_data, True, f"Erro: {str(e)}", "danger", False, update_trigger

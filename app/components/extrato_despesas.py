@@ -16,7 +16,9 @@ layout = dbc.Col([
 
     dbc.Row([
         dbc.Col([
-            dcc.Graph(id='bar-graph-despesas', style={"marginRight": "20px"})
+            dbc.Card(
+                dcc.Graph(id='bar-graph-despesas', style={"marginRight": "20px"})
+            ),
         ], width=9),
 
         dbc.Col([

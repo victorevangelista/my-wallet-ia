@@ -30,7 +30,12 @@ def get_user_db_engine(user_identifier):
     """Cria ou obtém do cache uma engine SQLAlchemy para o banco de dados do usuário."""
     if user_identifier not in _user_engines:
         db_path = get_user_db_path(user_identifier)
-        _user_engines[user_identifier] = create_engine(f"sqlite:///{db_path}")
+        _user_engines[user_identifier] = create_engine(
+                f"sqlite:///{db_path}",
+                pool_size=10,         # padrão é 5
+                max_overflow=20,      # padrão é 10
+                pool_timeout=30,
+            )
     return _user_engines[user_identifier]
 
 def init_user_db_tables(user_identifier):

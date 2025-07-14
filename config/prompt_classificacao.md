@@ -5,19 +5,20 @@ Todos são transações financeiras de uma pessoa física.
 
 Escolha uma dentre as seguintes categorias:
 - Alimentação
-- Receitas
-- Rendimentos
+- Receitas: Sempre que encontrar SALARIO
+- Rendimentos: Sem que encontrar REMUNERACAO APLICACAO AUTOMATICA
 - Saúde
 - Mercado
-- Educação
+- Educação: Sempre que encontrar ARCO
 - Compras
 - Transporte
 - Investimento
 - Transferência para terceiros
 - Telefone
 - Moradia
+- Cartão: Sempre que encontrar CARTAO MASTER
 
 Escolha a categoria deste item:
 {text}
 
-Responda com apenas a categoria, sem pontuação hifens e outros espaços que possam existir no inicio e no fim.
+Responda com apenas a categoria, exatamente como o indicado neste texto, sem pontuação hifens e outros espaços que possam existir no inicio e no fim.

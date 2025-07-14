@@ -12,6 +12,8 @@ from app import get_current_user_db_session
 from app.services.despesa_service import salvar_despesa_por_usuario
 from app.services.receita_service import salvar_receita_por_usuario
 from app.services.categoria_service import adicionar_categoria_despesa_por_usuario, adicionar_categoria_receita_por_usuario
+from app.llm.llm_classificacao import classificar_categorias_llm
+
 
 from dotenv import load_dotenv, find_dotenv
 
@@ -217,38 +219,23 @@ def register_callbacks(dash_app):
         if not row_data:
             return True, "Nenhum dado para classificar.", "danger", row_data
 
-        row_data_df = pd.DataFrame(row_data)
+        
         try:
 
             #=============
-            #LLM
-            from langchain_groq import ChatGroq
-            from langchain_core.prompts import PromptTemplate
-            from dotenv import load_dotenv, find_dotenv
-
-            _ = load_dotenv(find_dotenv())
+            # Consulta à LLM via função externa
+            
 
             # Carrega o prompt salvo no arquivo Markdown
             if os.path.exists(PROMPT_FILE):
                 with open(PROMPT_FILE, "r", encoding="utf-8") as file:
                     template = file.read()
-                    # print(template)
             else:
                 return True, f"Defina um prompt adequado para classificação das transações.", "danger", row_data
 
+            # Chama função externa para classificar categorias
+            row_data_df = classificar_categorias_llm(row_data, template)
 
-            prompt = PromptTemplate.from_template(template=template)
-            chat = ChatGroq(model="llama-3.1-8b-instant")
-            chain = prompt | chat
-
-            categoria = []
-
-            for row in row_data:
-                result = chain.invoke(row["Descrição"]).content
-                categoria += [result]
-                print(result)
-
-            row_data_df["Categoria"] = categoria
             
             return True, "Importação realizada com sucesso!", "success", row_data_df.to_dict("records")
 

@@ -8,15 +8,16 @@ Escolha uma dentre as seguintes categorias:
 - Receitas: Sempre que encontrar SALARIO
 - Rendimentos: Sem que encontrar REMUNERACAO APLICACAO AUTOMATICA
 - Saúde
-- Mercado
+- Mercado: Sempre que encontrar HIROTA
 - Educação: Sempre que encontrar ARCO
 - Compras
 - Transporte
 - Investimento
 - Transferência para terceiros
-- Telefone
+- Telefonia: Sempre que encontrar VIVO
 - Moradia
-- Cartão: Sempre que encontrar CARTAO MASTER
+- Cartão: Sempre que encontrar MASTER CARD
+- Vestimenta: Sempre que encontrar MIDWAY
 
 Escolha a categoria deste item:
 {text}

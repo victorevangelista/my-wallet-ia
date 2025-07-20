@@ -153,7 +153,7 @@ def register_callbacks(dash_app):
             
         valor = soma_receitas - soma_despesas
 
-        return f"R$ {valor:.2f}"
+        return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     
 
     @dash_app.callback(

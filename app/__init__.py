@@ -102,7 +102,7 @@ def create_app():
             return data_page(current_user.username), "/data"
         
         # Se o usuário não estiver logado e tentar acessar /data, redireciona para /login
-        if pathname in ["/data", "/extrato-despesas", "/extrato-receitas", "/import-ofx"]:
+        if pathname in ["/data", "/extrato-despesas", "/extrato-receitas", "/import-ofx", "/fina-bot"]:
             if current_user.is_authenticated:
                 return data_page(current_user.username), no_update
             return login_page(), "/login"

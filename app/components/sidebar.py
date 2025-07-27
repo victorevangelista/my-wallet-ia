@@ -262,6 +262,7 @@ layout = dbc.Col([
                     dbc.NavLink("Extrato Receitas", href="/extrato-receitas", active="exact"),
                     dbc.NavLink("Extrato Despesas", href="/extrato-despesas", active="exact"),
                     dbc.NavLink("Importar OFX", href="/import-ofx", active="exact"),
+                    dbc.NavLink("Fina Bot", href="/fina-bot", active="exact"),
                 ], vertical=True, pills=True, id='nav_buttons', style={"marginBottom": "50px"}),
                 
                 dbc.Button("Logout", id="logout_button"),

@@ -5,7 +5,7 @@ import dash_bootstrap_components as dbc
 # =========  Layout  =========== #
 layout = dbc.Col([
     dbc.Row([
-        html.Legend("Tabela de receitas"),
+        html.H2("Minhas Receitas", className="mb-4", style={"textAlign": "center"}),
         dbc.Alert(
             id="alert-auto-receita",
             is_open=False,

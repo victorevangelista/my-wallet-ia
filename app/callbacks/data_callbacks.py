@@ -4,6 +4,8 @@ from app.components.dashboard import layout as dashboard
 from app.components.extrato_despesas import layout as extrato_despesas
 from app.components.extrato_receitas import layout as extrato_receitas
 from app.components.import_ofx import layout as import_ofx
+from app.components.fina_bot import layout as fina_bot
+
 
 def register_callbacks(dash_app):
     @dash_app.callback(
@@ -24,3 +26,6 @@ def register_callbacks(dash_app):
         
         if pathname == '/import-ofx':
             return import_ofx
+        
+        if pathname == '/fina-bot':
+            return fina_bot

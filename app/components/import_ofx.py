@@ -3,8 +3,7 @@ import dash_ag_grid as dag
 import dash_bootstrap_components as dbc
 
 layout = dbc.Container([
-        html.H2("Importar Arquivo OFX", className="text-center"),
-
+        html.H2("Importação de Dados", className="mb-4", style={"textAlign": "center"}),
         # Alerta de Status
         dbc.Alert(id="import-alert", is_open=False, duration=5000, color="info"),
         

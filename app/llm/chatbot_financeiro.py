@@ -5,6 +5,8 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv, find_dotenv
 from sqlalchemy import text
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pandas as pd
 import uuid

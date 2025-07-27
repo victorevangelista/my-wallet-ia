@@ -40,14 +40,41 @@ layout = dbc.Container([
 
 # ========== CALLBACK EXEMPLO ========== #
 
-from app.llm.chatbot import full_chain  
+from app.llm.chatbot_financeiro import full_chain, sql_chain, run_query, is_valid_for_plot, plot_chart
 
+# Função para obter a resposta do bot e gerar gráficos se necessário
 def get_bot_response(user_message):
-    print(f"Usuário: {user_message}")
-    # Chama o full_chain passando a mensagem do usuário
-    result = full_chain.invoke({"question": user_message})
-    # Supondo que o resultado é um dicionário com a resposta em 'answer'
-    return result
+    try:
+        print(f"Usuário: {user_message}")
+        result = full_chain.invoke({"question": user_message})
+        resposta = result["resposta"]
+        tipo_vis = result["tipo_visualizacao"]
+
+        # Se for gráfico, gere a imagem e retorne o caminho junto com a resposta
+        if tipo_vis in ["pizza", "barras", "linhas"]:
+            sql_query = sql_chain.invoke({"question": user_message})
+            dados = run_query(sql_query)
+            if is_valid_for_plot(dados):
+                try:
+                    image_path = plot_chart(dados, chart_type=tipo_vis)
+                    return {"resposta": f"{resposta}\n\n", "imagem": image_path}
+                except Exception as plot_error:
+                    return {"resposta": f"{resposta}\n⚠️ Erro ao gerar gráfico: {plot_error}", "imagem": None}
+            else:
+                return {"resposta": f"{resposta}", "imagem": None}
+        else:
+            return {"resposta": resposta, "imagem": None}
+    except Exception as e:
+        # Mensagem amigável para o usuário
+        return {
+            "resposta": (
+                "Desculpe, ocorreu um erro ao processar sua solicitação.\n\n"
+                f"Detalhes técnicos: {str(e)}"
+                "\n\nSe a pergunta envolve dados financeiros relacionados, tente ser mais específico ou pergunte quais categorias estão disponíveis por exemplo."
+            ),
+            "imagem": None
+        }
+
 
 @callback(
     Output("chat-history", "children"),
@@ -132,12 +159,20 @@ def bot_response(chat_history):
     # Chama o bot
     bot_msg = get_bot_response(user_message)
 
+    # bot_msg agora é um dicionário {"resposta": ..., "imagem": ...}
+    components = [
+        html.Small("Fina Bot", style={"display": "block", "marginBottom": "2px", "color": "#000000"}),
+        dcc.Markdown(bot_msg["resposta"], className="bot-message", style={"background": "none", "padding": "0", "display": "inline-block", "margin": "0"})
+    ]
+    if bot_msg.get("imagem"):
+        components.append(
+            html.Img(src=f"/{bot_msg['imagem']}", style={"maxWidth": "100%", "marginTop": "10px"})
+        )
+
     chat_history.append(
-        html.Div([
-            html.Small("Fina Bot", style={"display": "block", "marginBottom": "2px", "color": "#000000"}),
-            dcc.Markdown(bot_msg, className="bot-message", style={"background": "none", "padding": "0", "display": "inline-block", "margin": "0"})
-        ], style={"textAlign": "left", "marginBottom": "10px"})
+        html.Div(components, style={"textAlign": "left", "marginBottom": "10px"})
     )
+    
 
     return chat_history
 

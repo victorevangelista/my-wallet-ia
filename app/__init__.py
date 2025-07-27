@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_login import current_user
 from flask_migrate import Migrate
+import flask
 import dash
 import os
 
@@ -30,6 +31,13 @@ def create_app():
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+    # Adicione este trecho para servir imagens da pasta 'temp'
+    @app.route('/temp/<path:filename>')
+    def serve_temp(filename):
+        # Caminho absoluto para a pasta /temp na raiz do projeto
+        temp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'temp'))
+        return flask.send_from_directory(temp_dir, filename)
+
     # Inicializa extensões
     db.init_app(app)
     login_manager.init_app(app)
@@ -51,17 +59,24 @@ def create_app():
     ]
     dbc_css = "https://cdn.jsdelivr.net/gh/AnnMarieW/dash-bootstrap-templates@V1.0.4/dbc.min.css"
 
+    # Define o caminho para a pasta de assets na raiz do projeto
+    assets_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '', 'assets'))
+
     dash_app = dash.Dash(
         __name__, 
         server=app, 
         url_base_pathname="/",
         external_stylesheets=estilos + [dbc_css],  
-        suppress_callback_exceptions=True
+        suppress_callback_exceptions=True,
+        assets_folder=assets_path
     )
 
     # Define o layout do Dash
     from app.layouts.main_layout import layout as main_layout
     dash_app.layout = main_layout
+
+
+
 
     from app.models.user import Users
 

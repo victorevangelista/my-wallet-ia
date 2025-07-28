@@ -6,6 +6,8 @@ from dash import callback, ctx, no_update
 
 # =========  Layout  =========== #
 layout = dbc.Container([
+    # Store para manter o histórico da conversa em formato de texto
+    dcc.Store(id='chat-history-store', data=[]),
     dbc.Row([
         dbc.Col([
             html.H2("Fina - Chatbot Financeiro", className="mb-4", style={"textAlign": "center"}),
@@ -43,16 +45,18 @@ layout = dbc.Container([
 from app.llm.chatbot_financeiro import full_chain, sql_chain, run_query, is_valid_for_plot, plot_chart
 
 # Função para obter a resposta do bot e gerar gráficos se necessário
-def get_bot_response(user_message):
+def get_bot_response(user_message, history):
     try:
         print(f"Usuário: {user_message}")
-        result = full_chain.invoke({"question": user_message})
+        # Converte a lista de histórico em uma string para o prompt
+        history_str = "\n".join(history)
+        result = full_chain.invoke({"question": user_message, "history": history_str})
         resposta = result["resposta"]
         tipo_vis = result["tipo_visualizacao"]
 
         # Se for gráfico, gere a imagem e retorne o caminho junto com a resposta
         if tipo_vis in ["pizza", "barras", "linhas"]:
-            sql_query = sql_chain.invoke({"question": user_message})
+            sql_query = sql_chain.invoke({"question": user_message, "history": history_str})
             dados = run_query(sql_query)
             if is_valid_for_plot(dados):
                 try:
@@ -79,14 +83,16 @@ def get_bot_response(user_message):
 @callback(
     Output("chat-history", "children"),
     Output("user-input", "value"),
+    Output("chat-history-store", "data"),
     Input("send-button", "n_clicks"),
     State("user-input", "value"),
     State("chat-history", "children"),
+    State("chat-history-store", "data"),
     prevent_initial_call=True
 )
-def update_chat(n_clicks, user_input, chat_history):
+def update_chat(n_clicks, user_input, chat_history, history_store):
     if not user_input or user_input.strip() == "":
-        return no_update, ""
+        return no_update, "", no_update
 
     # Inicializa histórico se necessário
     if not chat_history:
@@ -109,15 +115,22 @@ def update_chat(n_clicks, user_input, chat_history):
         ], style={"textAlign": "left", "marginBottom": "10px"})
     )
 
-    return chat_history, ""
+    # Atualiza o histórico de texto para a LLM
+    if not history_store:
+        history_store = []
+    history_store.append(f"Humano: {user_input}")
+
+    return chat_history, "", history_store
 
 # Callback para simular resposta do bot após processamento
 @callback(
     Output("chat-history", "children", allow_duplicate=True),
+    Output("chat-history-store", "data", allow_duplicate=True),
     Input("chat-history", "children"),
+    State("chat-history-store", "data"),
     prevent_initial_call=True
 )
-def bot_response(chat_history):
+def bot_response(chat_history, history_store):
     # Se não há histórico ou não há mensagem de processamento, não faz nada
     if not chat_history or not any(
         "Fina está processando" in (
@@ -125,7 +138,7 @@ def bot_response(chat_history):
         ) for c in chat_history
     ):
         return no_update
-
+    
     # Remove a última mensagem (processando)
     chat_history = list(chat_history)
     last = chat_history[-1]
@@ -154,10 +167,10 @@ def bot_response(chat_history):
                 break
 
     if not user_message:
-        return no_update
+        return no_update, no_update
 
     # Chama o bot
-    bot_msg = get_bot_response(user_message)
+    bot_msg = get_bot_response(user_message, history_store)
 
     # bot_msg agora é um dicionário {"resposta": ..., "imagem": ...}
     components = [
@@ -173,6 +186,7 @@ def bot_response(chat_history):
         html.Div(components, style={"textAlign": "left", "marginBottom": "10px"})
     )
     
+    # Atualiza o histórico de texto com a resposta da IA
+    history_store.append(f"IA: {bot_msg['resposta']}")
 
-    return chat_history
-
+    return chat_history, history_store

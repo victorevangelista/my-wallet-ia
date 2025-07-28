@@ -35,8 +35,11 @@ def get_current_user_db():
 
 # Prompt para gerar SQL
 template_sql = """
-Com base no esquema de tabela abaixo, escreva uma consulta SQL que responda à pergunta do usuário.
+Com base no esquema de tabela abaixo e no histórico da conversa, escreva uma consulta SQL que responda à pergunta do usuário.
+Lembre-se de usar o contexto de perguntas anteriores se a pergunta atual for uma continuação.
+
 {schema}
+Histórico da Conversa: {history}
 
 Pergunta: {question}
 Somente a consulta SQL, sem explicações adicionais e sem formatações. 
@@ -48,7 +51,7 @@ prompt_sql = ChatPromptTemplate.from_template(template=template_sql)
 template_chat = """
 Você é um assistente de IA especializado em dados financeiros do usuário.
 
-Instruções:
+Instruções Gerais:
 1. Use a resposta da consulta SQL para gerar uma explicação clara ao usuário.
 2. Avalie se a resposta pode ser visualizada com um gráfico.
    - Se sim, identifique o melhor tipo entre: "pizza", "barras", "linhas".
@@ -61,6 +64,9 @@ Instruções:
 
 IMPORTANTE:
 Retorne apenas o JSON válido acima. Não inclua nenhuma explicação fora dele.
+
+Histórico da Conversa (para contexto):
+{history}
 
 Esquema das tabelas:
 {schema}
@@ -206,24 +212,32 @@ full_chain = (
 
 # Loop de execução
 # if __name__ == "__main__":
+#     from collections import deque
+#     history = deque(maxlen=10) # Mantém as últimas 10 trocas
+
 #     print("Chatbot financeiro iniciado. Digite sua pergunta ou 'sair' para encerrar.")
 #     while True:
 #         question = input("\nPergunta: ")
 #         if question.lower() in ["sair", "exit", "quit"]:
 #             print("Encerrando chatbot.")
 #             break
-
+# 
+#         history_str = "\n".join(history)
 #         try:
-#             result = full_chain.invoke({"question": question})
+#             result = full_chain.invoke({"question": question, "history": history_str})
 #             resposta = result["resposta"]
 #             tipo_vis = result["tipo_visualizacao"]
-
+# 
+#             # Adiciona ao histórico
+#             history.append(f"Humano: {question}")
+#             history.append(f"IA: {resposta}")
+# 
 #             print("\nResposta:", resposta)
-
+# 
 #             if tipo_vis in ["pizza", "barras", "linhas"]:
-#                 sql_query = sql_chain.invoke({"question": question})
+#                 sql_query = sql_chain.invoke({"question": question, "history": history_str})
 #                 dados = run_query(sql_query)
-
+# 
 #                 if is_valid_for_plot(dados):
 #                     try:
 #                         image_path = plot_chart(dados, chart_type=tipo_vis)
@@ -232,6 +246,6 @@ full_chain = (
 #                         print(f"⚠️ Erro ao gerar gráfico: {plot_error}")
 #                 else:
 #                     print("ℹ️ Dados não são adequados para o tipo de visualização proposto.")
-
+# 
 #         except Exception as e:
 #             print("\nErro:", e)

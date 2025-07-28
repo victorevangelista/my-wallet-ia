@@ -1,3 +1,4 @@
+import glob
 from langchain_community.utilities import SQLDatabase
 from langchain_groq import ChatGroq
 from langchain_core.output_parsers import JsonOutputParser
@@ -11,14 +12,26 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import uuid
 import os
+# Imports para acesso dinâmico ao banco de dados do usuário
+from flask_login import current_user
+from app.db_utils import get_user_db_path
 
 # Carrega variáveis de ambiente
 _ = load_dotenv(find_dotenv())
 
-# Caminho para o banco de dados SQLite
-db_path = "instance/user_data/user_1.sqlite"
-assert os.path.exists(db_path), f"Banco não encontrado: {db_path}"
-db = SQLDatabase.from_uri(f"sqlite:///{db_path}")
+def get_current_user_db():
+    """
+    Cria e retorna uma instância SQLDatabase para o banco de dados do usuário logado.
+    Esta função deve ser chamada dentro de um contexto de requisição Flask.
+    """
+    if not current_user or not current_user.is_authenticated:
+        raise ConnectionRefusedError("Usuário não autenticado. Não é possível acessar o banco de dados.")
+    
+    user_db_path = get_user_db_path(current_user.id)
+    if not os.path.exists(user_db_path):
+        raise FileNotFoundError(f"Banco de dados do usuário não encontrado em: {user_db_path}")
+    
+    return SQLDatabase.from_uri(f"sqlite:///{user_db_path}")
 
 # Prompt para gerar SQL
 template_sql = """
@@ -68,6 +81,7 @@ output_parser = JsonOutputParser()
 
 # Recupera schema do banco
 def get_schema(_):
+    db = get_current_user_db()
     return db.get_table_info()
 
 # Limpa SQL retornada pela LLM
@@ -88,7 +102,8 @@ def extract_sql_from_llm_output(msg):
 
 # Executa a SQL
 def run_query(query):
-    query = clean_sql_query(query)
+    db = get_current_user_db()
+    query = clean_sql_query(query)    
     with db._engine.connect() as conn:
         result = conn.execute(text(query))
         rows = result.fetchall()

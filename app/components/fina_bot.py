@@ -3,40 +3,43 @@ from dash import html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
 from dash import callback, ctx, no_update
+from dash_chat import ChatComponent
+
+
+# Define default messages for the chat
+default_messages = [
+    {"role": "assistant", "content": "Olá sou a Fina, sua consultora financeira! Em que posso ajudar hoje?"},
+]
 
 # =========  Layout  =========== #
 layout = dbc.Container([
-    # Store para manter o histórico da conversa em formato de texto
-    dcc.Store(id='chat-history-store', data=[]),
+    
     dbc.Row([
         dbc.Col([
             html.H2("Fina - Chatbot Financeiro", className="mb-4", style={"textAlign": "center"}),
-            dbc.Card([
-                dbc.CardHeader("Histórico da Conversa"),
-                dbc.CardBody([
-                    html.Div(
-                            id="chat-history",
-                            style={
-                                "height": "400px",
-                                "overflowY": "auto",
-                                "padding": "10px",
-                                "borderRadius": "5px",
-                                "border": "1px solid #dee2e6"
-                            },
-                        ),
-                ])
-            ], className="mb-3"),
-            dbc.InputGroup([
-                dbc.Textarea(
-                    id="user-input",
-                    placeholder="Digite sua pergunta para a Fina...",
-                    style={"resize": "none"},
-                    rows=2
-                ),
-                dbc.Button("Enviar", id="send-button", color="primary", n_clicks=0)
-            ], className="mt-2")
+            html.Div(
+                [
+                    ChatComponent(
+                        id="chat-component",
+                        messages=[],  # Initialize empty since we'll load from storage
+                        input_placeholder="Digite sua mensagem aqui...",
+                    ),
+                    
+                    # The store component help use save messages
+                    dcc.Store("chat-memory", data=default_messages, storage_type="local"),
+                ],
+                
+                # Some basic CSS styling for the app
+                style={
+                    "max-width": "100%",
+                    "margin": "0 auto",
+                    "font-family": "Arial, sans-serif",
+                    "padding": "20px",
+                }
+            )
+
         ], width=12)
-    ])
+    ]),
 ], fluid=True, style={"padding": "20px"})
 
 
@@ -44,12 +47,14 @@ layout = dbc.Container([
 
 from app.llm.chatbot_financeiro import full_chain, sql_chain, run_query, is_valid_for_plot, plot_chart
 
+
+
 # Função para obter a resposta do bot e gerar gráficos se necessário
 def get_bot_response(user_message, history):
     try:
-        print(f"Usuário: {user_message}")
+        
         # Converte a lista de histórico em uma string para o prompt
-        history_str = "\n".join(history)
+        history_str = history if isinstance(history, str) else "\n".join([f"{msg['role']}: {msg['content']}" for msg in history])
         result = full_chain.invoke({"question": user_message, "history": history_str})
         resposta = result["resposta"]
         tipo_vis = result["tipo_visualizacao"]
@@ -80,113 +85,41 @@ def get_bot_response(user_message, history):
         }
 
 
+
 @callback(
-    Output("chat-history", "children"),
-    Output("user-input", "value"),
-    Output("chat-history-store", "data"),
-    Input("send-button", "n_clicks"),
-    State("user-input", "value"),
-    State("chat-history", "children"),
-    State("chat-history-store", "data"),
-    prevent_initial_call=True
+    Output("chat-component", "messages"),
+    Output("chat-memory", "data"),
+    Input("chat-component", "new_message"),
+    State("chat-memory", "data"),
 )
-def update_chat(n_clicks, user_input, chat_history, history_store):
-    if not user_input or user_input.strip() == "":
-        return no_update, "", no_update
+def handle_chat(new_message, messages):
+    # If new_message is None, just return the stored messages
+    # This is run at page load
+    if not new_message:
+        return messages, messages
 
-    # Inicializa histórico se necessário
-    if not chat_history:
-        chat_history = []
+    # If we have a user message, concatenate it to the list of messages
+    updated_messages = messages + [new_message]
 
-    # Adiciona mensagem do usuário (alinhada à direita)
-    chat_history = list(chat_history)  # Garante que é uma lista
-    chat_history.append(
-        html.Div([
-            html.Small("Você", style={"display": "block", "marginBottom": "2px", "color": "#000000"}),
-            dcc.Markdown(user_input, className="user-message", style={"background": "none", "padding": "0", "display": "inline-block", "margin": "0"})
-        ], style={"textAlign": "right", "marginBottom": "10px"})
-    )
+    # If the new message comes from the user, trigger the OpenAI API
+    if new_message["role"] == "user":
+        
+        # Chama o bot
+        print(f"Usuário: {new_message.get('content', '')}")
+        print(f"Histórico: {updated_messages}")
+        bot_msg = get_bot_response(new_message.get('content', ''), updated_messages)
+        print(f"Resposta: {bot_msg}")
 
-    # Adiciona mensagem de processamento do bot (alinhada à esquerda)
-    chat_history.append(
-        html.Div([
-            html.Small("Fina Bot", style={"display": "block", "marginBottom": "2px", "color": "#000000"}),
-            dcc.Markdown("Fina está processando sua resposta...", className="bot-message", style={"background": "none", "padding": "0", "display": "inline-block", "margin": "0"})
-        ], style={"textAlign": "left", "marginBottom": "10px"})
-    )
+        bot_response = {
+            "role": "assistant",
+            "content": f"{bot_msg['resposta']}\n\n![Gráfico]({bot_msg['imagem']})" if bot_msg.get("imagem") else bot_msg['resposta'],
+        }
 
-    # Atualiza o histórico de texto para a LLM
-    if not history_store:
-        history_store = []
-    history_store.append(f"Humano: {user_input}")
+        # Append the new message to the message list
+        updated_messages += [bot_response]
 
-    return chat_history, "", history_store
+    # We update both the chat component and the chat memory
+    return updated_messages, updated_messages
 
-# Callback para simular resposta do bot após processamento
-@callback(
-    Output("chat-history", "children", allow_duplicate=True),
-    Output("chat-history-store", "data", allow_duplicate=True),
-    Input("chat-history", "children"),
-    State("chat-history-store", "data"),
-    prevent_initial_call=True
-)
-def bot_response(chat_history, history_store):
-    # Se não há histórico ou não há mensagem de processamento, não faz nada
-    if not chat_history or not any(
-        "Fina está processando" in (
-            c['props']['children'][1]['props']['children'] if isinstance(c, dict) else ""
-        ) for c in chat_history
-    ):
-        return no_update
-    
-    # Remove a última mensagem (processando)
-    chat_history = list(chat_history)
-    last = chat_history[-1]
-    if isinstance(last, dict):
-        children = last.get('props', {}).get('children', [])
-        if len(children) > 1 and "Fina está processando" in (
-            children[1].get('props', {}).get('children', "") if isinstance(children[1], dict) else str(children[1])
-        ):
-            chat_history.pop()
-    else:
-        if "Fina está processando" in last.children[1].children:
-            chat_history.pop()
 
-    # Recupera a última mensagem do usuário antes do "Fina está processando"
-    user_message = None
-    for c in reversed(chat_history):
-        if isinstance(c, dict):
-            style = c.get('props', {}).get('style', {})
-            children = c.get('props', {}).get('children', [])
-            if style.get("textAlign") == "right" and len(children) > 1:
-                user_message = children[1].get('props', {}).get('children', "")
-                break
-        else:
-            if getattr(c, "style", {}).get("textAlign") == "right":
-                user_message = c.children[1].children
-                break
 
-    if not user_message:
-        return no_update, no_update
-
-    # Chama o bot
-    bot_msg = get_bot_response(user_message, history_store)
-
-    # bot_msg agora é um dicionário {"resposta": ..., "imagem": ...}
-    components = [
-        html.Small("Fina Bot", style={"display": "block", "marginBottom": "2px", "color": "#000000"}),
-        dcc.Markdown(bot_msg["resposta"], className="bot-message", style={"background": "none", "padding": "0", "display": "inline-block", "margin": "0"})
-    ]
-    if bot_msg.get("imagem"):
-        components.append(
-            html.Img(src=f"/{bot_msg['imagem']}", style={"maxWidth": "100%", "marginTop": "10px"})
-        )
-
-    chat_history.append(
-        html.Div(components, style={"textAlign": "left", "marginBottom": "10px"})
-    )
-    
-    # Atualiza o histórico de texto com a resposta da IA
-    history_store.append(f"IA: {bot_msg['resposta']}")
-
-    return chat_history, history_store

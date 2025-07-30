@@ -35,15 +35,29 @@ def get_current_user_db():
 
 # Prompt para gerar SQL
 template_sql = """
-Com base no esquema de tabela abaixo e no histórico da conversa, escreva uma consulta SQL que responda à pergunta do usuário.
-Lembre-se de usar o contexto de perguntas anteriores se a pergunta atual for uma continuação.
+Com base no esquema de tabela abaixo e no histórico da conversa, escreva uma consulta SQL compatível com SQLite que responda à pergunta do usuário.
 
+Instruções:
+1. Use apenas os nomes de tabelas e colunas fornecidos no esquema.
+2. Use **somente** funções compatíveis com SQLite.
+3. Se precisar extrair ano ou mês de datas, use: 
+   - strftime('%Y', coluna_data) para ano
+   - strftime('%m', coluna_data) para mês
+4. Nunca use EXTRACT(), DATE_TRUNC(), AT TIME ZONE ou funções do PostgreSQL.
+5. Retorne apenas a consulta SQL, sem explicações adicionais e sem formatações.
+6. Se a pergunta não puder ser respondida com SQL, retorne "nenhum".
+
+Esquema de tabela:
 {schema}
-Histórico da Conversa: {history}
+
+Histórico da Conversa:
+{history}
 
 Pergunta: {question}
-Somente a consulta SQL, sem explicações adicionais e sem formatações. 
+
+Apenas a consulta SQL:
 """
+
 
 prompt_sql = ChatPromptTemplate.from_template(template=template_sql)
 
@@ -51,30 +65,33 @@ prompt_sql = ChatPromptTemplate.from_template(template=template_sql)
 template_chat = """
 Você é um assistente de IA especializado em dados financeiros do usuário.
 
-Instruções Gerais:
-1. Use a resposta da consulta SQL para gerar uma explicação clara ao usuário.
-2. Avalie se a resposta pode ser visualizada com um gráfico.
-   - Se sim, identifique o melhor tipo entre: "pizza", "barras", "linhas".
-   - Se não, retorne "nenhum".
-3. Retorne um JSON com os campos:
-   {{
-      "resposta": "<mensagem explicativa para o usuário no formato Markdown>",
-      "tipo_visualizacao": "pizza" ou "barras" ou "linhas" ou "tabela" ou "nenhum"
-   }}
+Objetivo:
+- Interpretar a pergunta do usuário com base na resposta da consulta SQL.
+- Oferecer uma resposta consultiva e orientada, quando aplicável.
+- Se a resposta for objetiva (ex: valores, totais), explique de forma simples.
+- Se identificar padrões, tendências ou comportamentos financeiros relevantes, comente-os.
 
-IMPORTANTE:
-Retorne apenas o JSON válido acima. Não inclua nenhuma explicação fora dele.
+Visualização:
+- Avalie se é útil apresentar um gráfico para apoiar a explicação.
+- Escolha entre: "pizza", "barras", "linhas", "tabela", ou "nenhum".
 
-Histórico da Conversa (para contexto):
+Com base nos dados fornecidos, responda em formato JSON com os campos 'resposta' e 'tipo_visualizacao'. Apenas retorne o JSON, sem explicações:
+{{
+  "resposta": "<mensagem explicativa e consultiva em markdown>",
+  "tipo_visualizacao": "pizza" ou "barras" ou "linhas" ou "tabela" ou "nenhum"
+}}
+
+Histórico da Conversa:
 {history}
 
-Esquema das tabelas:
+Esquema das Tabelas:
 {schema}
 
 Pergunta: {question}
 SQL query: {sql_query} 
 Resposta SQL: {response}
 """
+
 
 
 prompt_chat = ChatPromptTemplate.from_template(template_chat)

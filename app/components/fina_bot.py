@@ -45,7 +45,7 @@ layout = dbc.Container([
 
 # ========== CALLBACK EXEMPLO ========== #
 
-from app.llm.chatbot_financeiro import full_chain, sql_chain, run_query, is_valid_for_plot, plot_chart
+from app.ia.llm.chatbot_financeiro import full_chain, sql_chain, run_query, is_valid_for_plot, plot_chart
 
 
 

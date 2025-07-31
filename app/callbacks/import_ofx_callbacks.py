@@ -12,7 +12,7 @@ from app import get_current_user_db_session
 from app.services.despesa_service import salvar_despesa_por_usuario, existe_despesa_por_usuario
 from app.services.receita_service import salvar_receita_por_usuario, existe_receita_por_usuario
 from app.services.categoria_service import adicionar_categoria_despesa_por_usuario, adicionar_categoria_receita_por_usuario
-from app.llm.llm_classificacao import classificar_categorias_llm
+from app.ia.llm.llm_classificacao import classificar_categorias_llm
 
 
 from dotenv import load_dotenv, find_dotenv

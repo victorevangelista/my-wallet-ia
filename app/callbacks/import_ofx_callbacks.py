@@ -9,8 +9,8 @@ import ofxparse  # Biblioteca para processar OFX
 # Importações atualizadas para usar serviços e sessão do usuário
 from flask_login import current_user
 from app import get_current_user_db_session
-from app.services.despesa_service import salvar_despesa_por_usuario
-from app.services.receita_service import salvar_receita_por_usuario
+from app.services.despesa_service import salvar_despesa_por_usuario, existe_despesa_por_usuario
+from app.services.receita_service import salvar_receita_por_usuario, existe_receita_por_usuario
 from app.services.categoria_service import adicionar_categoria_despesa_por_usuario, adicionar_categoria_receita_por_usuario
 from app.llm.llm_classificacao import classificar_categorias_llm
 
@@ -30,12 +30,16 @@ def register_callbacks(dash_app):
     @dash_app.callback(
         Output("ofx-grid-container", "children"),
         Output("confirm-import", "disabled"),
+        Output("import-alert", "is_open", allow_duplicate=True),
+        Output("import-alert", "children", allow_duplicate=True),
+        Output("import-alert", "color", allow_duplicate=True),
         Input("upload-ofx", "contents"),
-        State("upload-ofx", "filename")
+        State("upload-ofx", "filename"),
+        prevent_initial_call=True
     )
     def process_ofx_file(contents, filename):
         if not contents:
-            return [], True  # Não exibe nada se não houver arquivo
+            return [], True, False, "", ""  # Não exibe nada se não houver arquivo
         
         # Decodifica o arquivo OFX
         content_type, content_string = contents.split(',')
@@ -48,20 +52,42 @@ def register_callbacks(dash_app):
         # Converte os dados para um DataFrame
         data = []
         for transaction in ofx.account.statement.transactions:
-            data.append({
-                "ID": transaction.id,
-                "Data": transaction.date.strftime("%d/%m/%Y"),
-                "Categoria": "Importado OFX",
-                "Descrição": transaction.memo,
-                "Valor": round(transaction.amount, 2),
-                "Tipo": "Receita" if transaction.amount > 0 else "Despesa"
-            })
+            cod = transaction.id if hasattr(transaction, 'id') else None
+            date_trans = transaction.date.strftime("%d/%m/%Y") if hasattr(transaction, 'date') else None
+            descricao = transaction.memo if hasattr(transaction, 'memo') else "Sem Descrição"
+            valor = round(transaction.amount, 2) if hasattr(transaction, 'amount') else 0.0
+            tipo = "Receita" if valor > 0 else "Despesa"
+
+            # verifica se já existe o registro cadastrado
+            if tipo == "Receita":
+                # Verifica se a receita já existe
+                dataresult = existe_receita_por_usuario(get_current_user_db_session(), cod, date_trans, descricao, abs(valor))
+            elif tipo == "Despesa":
+                # Verifica se a despesa já existe
+                dataresult = existe_despesa_por_usuario(get_current_user_db_session(), cod, date_trans, descricao, abs(valor)) 
+            else:
+                dataresult = False
+                
+            # Se já existir, não adiciona à lista de dados
+            # Isso evita duplicação de dados no banco
+            if dataresult == False:
+                data.append({
+                    "COD": cod,
+                    "Data": date_trans,
+                    "Categoria": "Importado OFX",
+                    "Descrição": descricao,
+                    "Valor": valor,
+                    "Tipo": tipo
+                })
         
+        if not data:
+            return [], True, True, "Nenhuma transação nova encontrada no arquivo OFX.", "warning"
+
         df = pd.DataFrame(data)
 
         # Define colunas para a Grid
         columnDefs = [
-            {"headerName": "ID", "field": "ID"},
+            {"headerName": "COD", "field": "COD"},
             {"headerName": "Data", "field": "Data"},
             {"headerName": "Categoria", "field": "Categoria"},
             {"headerName": "Descrição", "field": "Descrição"},
@@ -78,7 +104,7 @@ def register_callbacks(dash_app):
             dashGridOptions={"animateRows": True, 'pagination': True},
         )
 
-        return grid, False  # Habilita o botão de importação
+        return grid, False, True, "Leitura do arquivo realizada com sucesso.", "success"  # Habilita o botão de importação
 
     # Callback para confirmar a importação e salvar no banco de dados
     @dash_app.callback(
@@ -108,6 +134,7 @@ def register_callbacks(dash_app):
         try:
             for row in row_data:
                 data_transacao = pd.to_datetime(row["Data"], format="%d/%m/%Y")
+                cod = row["COD"]
                 descricao = row["Descrição"]
                 valor = abs(row["Valor"])  # Valor absoluto para evitar duplicação de sinal
                 categoria_nome = row["Categoria"] # Nome da categoria, ex: "Importado OFX"
@@ -123,6 +150,7 @@ def register_callbacks(dash_app):
                 if row["Tipo"] == "Receita":
                     success, message = salvar_receita_por_usuario(
                         user_session,
+                        cod=cod,
                         descricao=descricao,
                         categoria_nome=categoria_nome,
                         data=data_transacao,
@@ -133,6 +161,7 @@ def register_callbacks(dash_app):
                 elif row["Tipo"] == "Despesa":
                     success, message = salvar_despesa_por_usuario(
                         user_session,
+                        cod=cod,
                         descricao=descricao,
                         categoria_nome=categoria_nome,
                         data=data_transacao,

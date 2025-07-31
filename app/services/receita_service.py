@@ -1,6 +1,8 @@
 from app.models.financial_data import Receita as FinancialReceita, CatReceitas
+from sqlalchemy import func
+from datetime import datetime
 
-def salvar_receita_por_usuario(user_session, descricao, categoria_nome, data, valor, parcelado, fixo):
+def salvar_receita_por_usuario(user_session, cod, descricao, categoria_nome, data, valor, parcelado, fixo):
     try:
         # Busca o ID da categoria pelo nome, específico para receitas
         categoria_obj = None
@@ -10,6 +12,7 @@ def salvar_receita_por_usuario(user_session, descricao, categoria_nome, data, va
         categoria_id_val = categoria_obj.id if categoria_obj else None
 
         nova_receita = FinancialReceita(
+            cod=cod,
             descricao=descricao,
             categoria_id=categoria_id_val,
             data=data,
@@ -36,6 +39,7 @@ def buscar_receitas_por_usuario(user_session):
         return [
             {
                 "id": receita.id,
+                "cod": receita.cod,
                 "descricao": receita.descricao,
                 "categoria": receita.categoria.categoria if receita.categoria else "Sem Categoria",
                 "data": receita.data.strftime("%d/%m/%Y") if receita.data else None,
@@ -50,7 +54,7 @@ def buscar_receitas_por_usuario(user_session):
         return [] # Retorna lista vazia em caso de erro
 
 
-def update_receita_por_usuario(user_session, receita_id, descricao=None, categoria_nome=None, data=None, valor=None, parcelado=None, fixo=None):
+def update_receita_por_usuario(user_session, receita_id, cod=None, descricao=None, categoria_nome=None, data=None, valor=None, parcelado=None, fixo=None):
     """
     Atualiza uma receita existente no banco de dados.
     
@@ -73,6 +77,8 @@ def update_receita_por_usuario(user_session, receita_id, descricao=None, categor
             return False, "Erro: Receita não encontrada."
 
         # Atualiza apenas os campos informados (que não são None)
+        if cod is not None:
+            receita.cod = cod
         if descricao is not None:
             receita.descricao = descricao
         if categoria_nome is not None:
@@ -108,3 +114,28 @@ def excluir_receita_por_usuario(user_session, receita_id):
     except Exception as e:
         user_session.rollback()
         return False, str(e)
+    
+
+
+def existe_receita_por_usuario(user_session, cod, data, descricao, valor):
+    """
+    Retorna um true ou false se existem receitas cadastradas no banco de dados.
+    """
+    try:
+
+        # Se data veio como string:
+        if isinstance(data, str):
+            data = datetime.strptime(data, "%d/%m/%Y")
+
+        receita = user_session.query(FinancialReceita).filter(
+            FinancialReceita.cod == cod,
+            func.date(FinancialReceita.data) == data.date(),
+            FinancialReceita.descricao == descricao,
+            func.round(FinancialReceita.valor, 2) == round(valor, 2)
+        ).first()
+
+        # Retorna True se a receita existir, False caso contrário
+        return True if receita is not None else False
+    except Exception as e:
+        print(f"Erro ao verificar existência de receita: {str(e)}")
+        return False

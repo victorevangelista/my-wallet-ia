@@ -28,6 +28,7 @@ class CatReceitas(UserDataBase): # Mude de db.Model para UserDataBase
 class Receita(UserDataBase):
     __tablename__ = 'receitas'
     id = Column(Integer, primary_key=True, autoincrement=True)
+    cod = Column(String(10), nullable=True)  
     descricao = Column(String(200), nullable=False)
     valor = Column(Float, nullable=False)
     data = Column(Date, nullable=False)
@@ -43,6 +44,7 @@ class Receita(UserDataBase):
 class Despesa(UserDataBase):
     __tablename__ = 'despesas'
     id = Column(Integer, primary_key=True, autoincrement=True)
+    cod = Column(String(10), nullable=True)  
     descricao = Column(String(200), nullable=False)
     valor = Column(Float, nullable=False)
     data = Column(Date, nullable=False)

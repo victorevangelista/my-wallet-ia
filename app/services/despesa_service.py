@@ -1,6 +1,8 @@
 from app.models.financial_data import Despesa as FinancialDespesa, CatDespesas
+from sqlalchemy import func
+from datetime import datetime
 
-def salvar_despesa_por_usuario(user_session, descricao, categoria_nome, data, valor, parcelado, fixo):
+def salvar_despesa_por_usuario(user_session, cod, descricao, categoria_nome, data, valor, parcelado, fixo):
     try:
         # Busca o ID da categoria pelo nome, específico para despesas
         categoria_obj = None
@@ -10,6 +12,7 @@ def salvar_despesa_por_usuario(user_session, descricao, categoria_nome, data, va
         categoria_id_val = categoria_obj.id if categoria_obj else None
 
         nova_despesa = FinancialDespesa(
+            cod=cod,
             descricao=descricao,
             categoria_id=categoria_id_val,
             data=data,
@@ -35,6 +38,7 @@ def buscar_despesas_por_usuario(user_session):
         return [
             {
                 "id": despesa.id,
+                "cod": despesa.cod,
                 "descricao": despesa.descricao,
                 "categoria": despesa.categoria.categoria if despesa.categoria else "Sem Categoria",
                 "data": despesa.data.strftime("%d/%m/%Y") if despesa.data else None,
@@ -49,7 +53,7 @@ def buscar_despesas_por_usuario(user_session):
         return [] # Retorna lista vazia em caso de erro
 
 
-def update_despesa_por_usuario(user_session, despesa_id, descricao=None, categoria_nome=None, data=None, valor=None, parcelado=None, fixo=None):
+def update_despesa_por_usuario(user_session, despesa_id, cod=None, descricao=None, categoria_nome=None, data=None, valor=None, parcelado=None, fixo=None):
     """
     Atualiza uma despesa existente no banco de dados.
     
@@ -72,6 +76,8 @@ def update_despesa_por_usuario(user_session, despesa_id, descricao=None, categor
             return False, "Erro: Despesa não encontrada."
 
         # Atualiza apenas os campos informados (que não são None)
+        if cod is not None:
+            despesa.cod = cod
         if descricao is not None:
             despesa.descricao = descricao
         if categoria_nome is not None:
@@ -108,3 +114,27 @@ def excluir_despesa_por_usuario(user_session, despesa_id):
     except Exception as e:
         user_session.rollback()
         return False, str(e)
+    
+
+def existe_despesa_por_usuario(user_session, cod, data, descricao, valor):
+    """
+    Retorna um true ou false se existem despesas cadastradas no banco de dados.
+    """
+    try:
+
+        # Se data veio como string:
+        if isinstance(data, str):
+            data = datetime.strptime(data, "%d/%m/%Y")
+        
+        despesa = user_session.query(FinancialDespesa).filter(
+            FinancialDespesa.cod == cod,
+            func.date(FinancialDespesa.data) == data.date(),
+            FinancialDespesa.descricao == descricao,
+            func.round(FinancialDespesa.valor, 2) == round(valor, 2)
+        ).first()
+        
+        # Retorna True se a despesa existir, False caso contrário
+        return True if despesa is not None else False
+    except Exception as e:
+        print(f"Erro ao verificar existência de despesa: {str(e)}")
+        return False

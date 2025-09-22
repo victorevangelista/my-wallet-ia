@@ -9,10 +9,11 @@ import ofxparse  # Biblioteca para processar OFX
 # Importações atualizadas para usar serviços e sessão do usuário
 from flask_login import current_user
 from app import get_current_user_db_session
-from app.services.despesa_service import salvar_despesa_por_usuario, existe_despesa_por_usuario
-from app.services.receita_service import salvar_receita_por_usuario, existe_receita_por_usuario
+from app.services.despesa_service import salvar_despesa_por_usuario, existe_despesa_por_usuario, buscar_despesas_por_usuario
+from app.services.receita_service import salvar_receita_por_usuario, existe_receita_por_usuario, buscar_receitas_por_usuario
 from app.services.categoria_service import adicionar_categoria_despesa_por_usuario, adicionar_categoria_receita_por_usuario
 from app.ia.llm.llm_classificacao import classificar_categorias_llm
+from app.ia.machine_learning.learning_classify import classificar_categorias_ML
 
 
 from dotenv import load_dotenv, find_dotenv
@@ -250,10 +251,28 @@ def register_callbacks(dash_app):
 
         
         try:
-
-            #=============
-            # Consulta à LLM via função externa
+            if not current_user.is_authenticated:
+                return True, "Usuário não autenticado. Faça login para classificar.", "warning", row_data
             
+            user_session = get_current_user_db_session()
+            if not user_session:
+                return True, "Erro de sessão do usuário. Não foi possível classificar.", "danger", row_data
+            
+            # Verifica se a quantidade de despesas e receitas cadastradas na base
+            despesas_cadastradas = buscar_despesas_por_usuario(user_session)
+            if len(despesas_cadastradas) > 50:
+                receitas_cadastradas = buscar_receitas_por_usuario(user_session)
+                if len(receitas_cadastradas) > 20:
+                    # cria DataFrame com os dados cadastrados e faz o merge de despesas e receitas
+                    despesas_df = pd.DataFrame(despesas_cadastradas)
+                    receitas_df = pd.DataFrame(receitas_cadastradas)
+                    cadastrados_df = pd.concat([despesas_df, receitas_df], ignore_index=True)
+
+                    # classifica as categorias usando Machine Learning
+                    row_data_df = classificar_categorias_ML(row_data, cadastrados_df)
+                    return True, "Classificação com Machine Learning realizada com sucesso!", "success", row_data_df.to_dict("records")
+
+
 
             # Carrega o prompt salvo no arquivo Markdown
             if os.path.exists(PROMPT_FILE):
@@ -266,7 +285,7 @@ def register_callbacks(dash_app):
             row_data_df = classificar_categorias_llm(row_data, template)
 
             
-            return True, "Importação realizada com sucesso!", "success", row_data_df.to_dict("records")
+            return True, "Classificação com LLM realizada com sucesso!", "success", row_data_df.to_dict("records")
 
         except Exception as e:
             # Não há db.session aqui, pois este callback não salva no banco diretamente

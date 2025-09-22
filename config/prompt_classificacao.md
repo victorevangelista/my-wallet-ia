@@ -6,13 +6,12 @@ Todos são transações financeiras de uma pessoa física.
 Escolha uma dentre as seguintes categorias:
 - Alimentação
 - Receitas: Sempre que encontrar SALARIO
-- Rendimentos: Sem que encontrar REMUNERACAO APLICACAO AUTOMATICA
-- Saúde
+- Rendimentos: Sempre que encontrar REMUNERACAO APLICACAO AUTOMATICA
+- Saúde: Sempre que encontrar DROGARIA e FARMACIA
 - Mercado: Sempre que encontrar HIROTA
 - Educação: Sempre que encontrar ARCO
 - Compras
 - Transporte
-- Investimento
 - Transferência para terceiros
 - Telefonia: Sempre que encontrar VIVO
 - Moradia

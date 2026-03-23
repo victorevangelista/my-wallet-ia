@@ -92,6 +92,7 @@ def register_callbacks(dash_app):
             Output("date-despesas", "date"),
             Output("select-despesa", "value"), 
             Output("swtches-input-despesa", "value"),
+            Output("store-despesas", "data", allow_duplicate=True),
         ],
         
         [Input("salvar-despesa-btn", "n_clicks")],
@@ -110,18 +111,19 @@ def register_callbacks(dash_app):
         if n_clicks and current_user.is_authenticated:
             user_session = get_current_user_db_session()
             if not user_session:
-                return not is_open, "Erro de sessão. Faça login novamente.", "danger", no_update, no_update, no_update, no_update, no_update
+                return not is_open, "Erro de sessão. Faça login novamente.", "danger", no_update, no_update, no_update, no_update, no_update, no_update
 
             if not descricao or not valor or not data or not categoria:
-                return not is_open, "Erro: Todos os campos são obrigatórios!", "danger", no_update, no_update, no_update, no_update, no_update
+                return not is_open, "Erro: Todos os campos são obrigatórios!", "danger", no_update, no_update, no_update, no_update, no_update, no_update
 
             valor_convertido = validar_e_converter_valor(valor)  # Valida e converte para FLOAT
             if valor_convertido is None:
-                return not is_open, "Erro: O campo 'Valor' deve ser um número decimal válido!", "danger", no_update, no_update, no_update, no_update, no_update
+                return not is_open, "Erro: O campo 'Valor' deve ser um número decimal válido!", "danger", no_update, no_update, no_update, no_update, no_update, no_update
             
             # Assumindo que 'categoria' é o nome da categoria (string)
             success, message = salvar_despesa_por_usuario(
                 user_session, # Passa a sessão do usuário
+                cod=None,
                 descricao=descricao,
                 categoria_nome=categoria, # Passa o nome da categoria
                 data=pd.to_datetime(data).date(),
@@ -130,8 +132,8 @@ def register_callbacks(dash_app):
                 fixo=2 in extras
             )
             # Limpa os campos em caso de sucesso
-            return not is_open, message, "success" if success else "danger", "" if success else no_update, "" if success else no_update, pd.Timestamp.today().date() if success else no_update, None if success else no_update, [] if success else no_update
-        return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
+            return not is_open, message, "success" if success else "danger", "" if success else no_update, "" if success else no_update, pd.Timestamp.today().date() if success else no_update, None if success else no_update, [] if success else no_update, pd.Timestamp.now().timestamp() if success else no_update
+        return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
     
     # Callback para adicionar uma nova receita
     @dash_app.callback(
@@ -144,6 +146,7 @@ def register_callbacks(dash_app):
             Output("date-receita", "date"),
             Output("select-receita", "value"), 
             Output("swtches-input-receita", "value"),
+            Output("store-receitas", "data", allow_duplicate=True),
         ],
         
         [Input("salvar-receita-btn", "n_clicks")],
@@ -162,17 +165,18 @@ def register_callbacks(dash_app):
         if n_clicks and current_user.is_authenticated:
             user_session = get_current_user_db_session()
             if not user_session:
-                return not is_open, "Erro de sessão. Faça login novamente.", "danger", no_update, no_update, no_update, no_update, no_update
+                return not is_open, "Erro de sessão. Faça login novamente.", "danger", no_update, no_update, no_update, no_update, no_update, no_update
 
             if not descricao or not valor or not data or not categoria:
-                return not is_open, "Erro: Todos os campos são obrigatórios!", "danger", no_update, no_update, no_update, no_update, no_update
+                return not is_open, "Erro: Todos os campos são obrigatórios!", "danger", no_update, no_update, no_update, no_update, no_update, no_update
 
             valor_convertido = validar_e_converter_valor(valor)  # Valida e converte para FLOAT
             if valor_convertido is None:
-                return not is_open, "Erro: O campo 'Valor' deve ser um número decimal válido!", "danger", no_update, no_update, no_update, no_update, no_update
+                return not is_open, "Erro: O campo 'Valor' deve ser um número decimal válido!", "danger", no_update, no_update, no_update, no_update, no_update, no_update
             
             success, message = salvar_receita_por_usuario(
                 user_session, # Passa a sessão do usuário
+                cod=None,
                 descricao=descricao,
                 categoria_nome=categoria, # Passa o nome da categoria
                 data=pd.to_datetime(data).date(),
@@ -180,8 +184,8 @@ def register_callbacks(dash_app):
                 parcelado=1 in extras,
                 fixo=2 in extras
             )
-            return not is_open, message, "success" if success else "danger", "" if success else no_update, "" if success else no_update, pd.Timestamp.today().date() if success else no_update, None if success else no_update, [] if success else no_update
-        return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
+            return not is_open, message, "success" if success else "danger", "" if success else no_update, "" if success else no_update, pd.Timestamp.today().date() if success else no_update, None if success else no_update, [] if success else no_update, pd.Timestamp.now().timestamp() if success else no_update
+        return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
 
 
     # Callback para carregar categorias no dropdown e checklist

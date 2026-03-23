@@ -18,9 +18,12 @@ from app import get_current_user_db_session
 def register_callbacks(dash_app):
     @dash_app.callback(
         Output('tabela-despesas', 'children'),
-        Input("base-url", "pathname")
+        [
+            Input("base-url", "pathname"),
+            Input("store-despesas", "data")
+        ]
     )
-    def imprimir_tabela(pathname):
+    def imprimir_tabela(pathname, store_despesas):
         if not current_user.is_authenticated:
             return html.Div("Por favor, faça login para ver as despesas.")
 

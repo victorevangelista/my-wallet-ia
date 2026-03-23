@@ -23,10 +23,11 @@ def register_callbacks(dash_app):
         [
             Input("date-picker-config", "start_date"),
             Input("date-picker-config", "end_date"),
-            Input("base-url", "pathname")
+            Input("base-url", "pathname"),
+            Input("store-despesas", "data")
         ]
     )
-    def populate_dropdown_despesas(start_date, end_date, pathname):
+    def populate_dropdown_despesas(start_date, end_date, pathname, store_despesas):
         if not current_user.is_authenticated:
             return [], [], "R$ 0,00"
         
@@ -73,10 +74,11 @@ def register_callbacks(dash_app):
         [
             Input("date-picker-config", "start_date"),
             Input("date-picker-config", "end_date"),
-            Input("base-url", "pathname")
+            Input("base-url", "pathname"),
+            Input("store-receitas", "data")
         ]
     )
-    def populate_dropdown_receitas(start_date, end_date, pathname):
+    def populate_dropdown_receitas(start_date, end_date, pathname, store_receitas):
         if not current_user.is_authenticated:
             return [], [], "R$ 0,00"
         
@@ -117,10 +119,12 @@ def register_callbacks(dash_app):
         [
             Input("date-picker-config", "start_date"),
             Input("date-picker-config", "end_date"),
-            Input("base-url", "pathname")
+            Input("base-url", "pathname"),
+            Input("store-receitas", "data"),
+            Input("store-despesas", "data")
         ]
     )
-    def refresh_saldo(start_date, end_date, pathname):
+    def refresh_saldo(start_date, end_date, pathname, store_receitas, store_despesas):
         if not current_user.is_authenticated:
             return "R$ 0,00"
         
@@ -162,10 +166,12 @@ def register_callbacks(dash_app):
             Input("dropdown-receita", "value"),
             Input("dropdown-despesa", "value"),
             Input("date-picker-config", "start_date"),
-            Input("date-picker-config", "end_date")
+            Input("date-picker-config", "end_date"),
+            Input("store-receitas", "data"),
+            Input("store-despesas", "data")
         ]
     )
-    def update_graph_cashflow(receita_cats_selected, despesa_cats_selected, start_date, end_date):
+    def update_graph_cashflow(receita_cats_selected, despesa_cats_selected, start_date, end_date, store_receitas, store_despesas):
         fig = go.Figure()
         fig.update_layout(margin=graph_margin, height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
 
@@ -219,10 +225,12 @@ def register_callbacks(dash_app):
             Input("dropdown-receita", "value"),
             Input("dropdown-despesa", "value"),
             Input("date-picker-config", "start_date"),
-            Input("date-picker-config", "end_date")
+            Input("date-picker-config", "end_date"),
+            Input("store-receitas", "data"),
+            Input("store-despesas", "data")
         ]
     )
-    def update_graph2(receita_cats_selected, despesa_cats_selected, start_date, end_date):
+    def update_graph2(receita_cats_selected, despesa_cats_selected, start_date, end_date, store_receitas, store_despesas):
         fig = px.bar() 
         fig.update_layout(margin=graph_margin, height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
 
@@ -270,10 +278,11 @@ def register_callbacks(dash_app):
     @dash_app.callback(
         Output("graph3", "figure"),
         [
-            Input("dropdown-receita", "value")
+            Input("dropdown-receita", "value"),
+            Input("store-receitas", "data")
         ]
     )
-    def update_graph_receita(receita_cats_selected): # Removido start_date, end_date se não for usar
+    def update_graph_receita(receita_cats_selected, store_receitas): # Removido start_date, end_date se não for usar
         fig = px.pie(hole=.2)
         fig.update_layout(title={"text": "Receitas"}, margin=graph_margin, height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         fig.update_layout(legend=dict(orientation='h', yanchor='top', y=-0.2, xanchor='center', x=0.5))
@@ -321,10 +330,11 @@ def register_callbacks(dash_app):
     @dash_app.callback(
         Output("graph4", "figure"),
         [
-            Input("dropdown-despesa", "value")
+            Input("dropdown-despesa", "value"),
+            Input("store-despesas", "data")
         ]
     )
-    def update_graph_despesa(despesa_cats_selected): # Removido start_date, end_date se não for usar
+    def update_graph_despesa(despesa_cats_selected, store_despesas): # Removido start_date, end_date se não for usar
         fig = px.pie(hole=.2)
         fig.update_layout(title={"text": "Despesas"}, margin=graph_margin, height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         fig.update_layout(legend=dict(orientation='h', yanchor='top', y=-0.2, xanchor='center', x=0.5))

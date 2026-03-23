@@ -1,6 +1,7 @@
 # Removido: from app import db
 # Assumindo que CatDespesas e CatReceitas foram movidos para financial_data.py e usam UserDataBase
 from app.models.financial_data import CatDespesas, CatReceitas 
+from sqlalchemy import func
 
 # Adicionar categoria de despesa
 def adicionar_categoria_despesa_por_usuario(user_session, nome):
@@ -76,7 +77,7 @@ def buscar_cat_despesas_por_usuario(user_session):
     Retorna uma lista de todas as categorias de despesas cadastradas no banco de dados.
     """
     try:
-        cat_despesas = user_session.query(CatDespesas).all()
+        cat_despesas = user_session.query(CatDespesas).order_by(func.lower(CatDespesas.categoria)).all()
         return True, [
             {
                 "id": cat_despesa.id,
@@ -93,7 +94,7 @@ def buscar_cat_receitas_por_usuario(user_session):
     Retorna uma lista de todas as categorias de receitas cadastradas no banco de dados.
     """
     try:
-        cat_receitas = user_session.query(CatReceitas).all()
+        cat_receitas = user_session.query(CatReceitas).order_by(func.lower(CatReceitas.categoria)).all()
         return True, [
             {
                 "id": cat_receita.id,

@@ -10,24 +10,24 @@ import plotly.graph_objects as go
 from flask_login import current_user
 from app import get_current_user_db_session
 
-def filtrar_df_por_filtros_extras(df, filtro_recorrentes, filtro_parceladas):
+def filtrar_df_por_filtros_extras(df, filtro_recorrentes, filtro_cartao):
     if df.empty:
         return df
     
     if 'fixo' not in df.columns: df['fixo'] = False
-    if 'parcelado' not in df.columns: df['parcelado'] = False
+    if 'cartao_credito' not in df.columns: df['cartao_credito'] = False
     df['fixo'] = df['fixo'].fillna(False).astype(bool)
-    df['parcelado'] = df['parcelado'].fillna(False).astype(bool)
+    df['cartao_credito'] = df['cartao_credito'].fillna(False).astype(bool)
     
     if filtro_recorrentes == "recorrente":
         df = df[df['fixo'] == True]
     elif filtro_recorrentes == "nao_recorrente":
         df = df[df['fixo'] == False]
         
-    if filtro_parceladas == "parcelado":
-        df = df[df['parcelado'] == True]
-    elif filtro_parceladas == "nao_parcelado":
-        df = df[df['parcelado'] == False]
+    if filtro_cartao == "cartao_credito":
+        df = df[df['cartao_credito'] == True]
+    elif filtro_cartao == "outros":
+        df = df[df['cartao_credito'] == False]
         
     return df
 
@@ -46,10 +46,10 @@ def register_callbacks(dash_app):
             Input("base-url", "pathname"),
             Input("store-despesas", "data"),
             Input("radio-recorrentes", "value"),
-            Input("radio-parceladas", "value")
+            Input("radio-cartao", "value")
         ]
     )
-    def populate_dropdown_despesas(start_date, end_date, pathname, store_despesas, filtro_recorrentes, filtro_parceladas):
+    def populate_dropdown_despesas(start_date, end_date, pathname, store_despesas, filtro_recorrentes, filtro_cartao):
         if not current_user.is_authenticated:
             return [], [], "R$ 0,00"
         
@@ -76,7 +76,7 @@ def register_callbacks(dash_app):
 
         # Filtrar pela data
         df_filtered = df[(df["data"] >= start_date_dt) & (df["data"] <= end_date_dt)]
-        df_filtered = filtrar_df_por_filtros_extras(df_filtered, filtro_recorrentes, filtro_parceladas)
+        df_filtered = filtrar_df_por_filtros_extras(df_filtered, filtro_recorrentes, filtro_cartao)
 
         # Calcular soma correta
         valor = df_filtered["valor"].sum()
@@ -100,10 +100,10 @@ def register_callbacks(dash_app):
             Input("base-url", "pathname"),
             Input("store-receitas", "data"),
             Input("radio-recorrentes", "value"),
-            Input("radio-parceladas", "value")
+            Input("radio-cartao", "value")
         ]
     )
-    def populate_dropdown_receitas(start_date, end_date, pathname, store_receitas, filtro_recorrentes, filtro_parceladas):
+    def populate_dropdown_receitas(start_date, end_date, pathname, store_receitas, filtro_recorrentes, filtro_cartao):
         if not current_user.is_authenticated:
             return [], [], "R$ 0,00"
         
@@ -131,7 +131,7 @@ def register_callbacks(dash_app):
         df_filtered = df[(df["data"] >= start_date_dt) & (df["data"] <= end_date_dt)]
 
         # Filtrar pelos switches Extras
-        df_filtered = filtrar_df_por_filtros_extras(df_filtered, filtro_recorrentes, filtro_parceladas)
+        df_filtered = filtrar_df_por_filtros_extras(df_filtered, filtro_recorrentes, filtro_cartao)
 
         # Calcular soma correta
         valor = df_filtered["valor"].sum()
@@ -151,10 +151,10 @@ def register_callbacks(dash_app):
             Input("store-receitas", "data"),
             Input("store-despesas", "data"),
             Input("radio-recorrentes", "value"),
-            Input("radio-parceladas", "value")
+            Input("radio-cartao", "value")
         ]
     )
-    def refresh_saldo(start_date, end_date, pathname, store_receitas, store_despesas, filtro_recorrentes, filtro_parceladas):
+    def refresh_saldo(start_date, end_date, pathname, store_receitas, store_despesas, filtro_recorrentes, filtro_cartao):
         if not current_user.is_authenticated:
             return "R$ 0,00"
         
@@ -176,7 +176,7 @@ def register_callbacks(dash_app):
             df_receita["data"] = pd.to_datetime(df_receita["data"], format="%d/%m/%Y", errors='coerce')
             df_receita.dropna(subset=['data'], inplace=True)
             df_receita = df_receita[(df_receita["data"] >= start_date_dt) & (df_receita["data"] <= end_date_dt)]
-            df_receita = filtrar_df_por_filtros_extras(df_receita, filtro_recorrentes, filtro_parceladas)
+            df_receita = filtrar_df_por_filtros_extras(df_receita, filtro_recorrentes, filtro_cartao)
             soma_receitas = df_receita['valor'].sum()
 
         soma_despesas = 0
@@ -184,7 +184,7 @@ def register_callbacks(dash_app):
             df_despesa["data"] = pd.to_datetime(df_despesa["data"], format="%d/%m/%Y", errors='coerce')
             df_despesa.dropna(subset=['data'], inplace=True)
             df_despesa = df_despesa[(df_despesa["data"] >= start_date_dt) & (df_despesa["data"] <= end_date_dt)]
-            df_despesa = filtrar_df_por_filtros_extras(df_despesa, filtro_recorrentes, filtro_parceladas)
+            df_despesa = filtrar_df_por_filtros_extras(df_despesa, filtro_recorrentes, filtro_cartao)
             soma_despesas = df_despesa['valor'].sum()
             
         valor = soma_receitas - soma_despesas
@@ -202,10 +202,10 @@ def register_callbacks(dash_app):
             Input("store-receitas", "data"),
             Input("store-despesas", "data"),
             Input("radio-recorrentes", "value"),
-            Input("radio-parceladas", "value")
+            Input("radio-cartao", "value")
         ]
     )
-    def update_graph_cashflow(receita_cats_selected, despesa_cats_selected, start_date, end_date, store_receitas, store_despesas, filtro_recorrentes, filtro_parceladas):
+    def update_graph_cashflow(receita_cats_selected, despesa_cats_selected, start_date, end_date, store_receitas, store_despesas, filtro_recorrentes, filtro_cartao):
         fig = go.Figure()
         fig.update_layout(margin=graph_margin, height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
 
@@ -225,7 +225,7 @@ def register_callbacks(dash_app):
             df_receita["data"] = pd.to_datetime(df_receita["data"], format="%d/%m/%Y", errors='coerce')
             df_receita.dropna(subset=['data'], inplace=True)
             df_receita = df_receita[(df_receita["data"] >= start_date_dt) & (df_receita["data"] <= end_date_dt)]
-            df_receita = filtrar_df_por_filtros_extras(df_receita, filtro_recorrentes, filtro_parceladas)
+            df_receita = filtrar_df_por_filtros_extras(df_receita, filtro_recorrentes, filtro_cartao)
             if receita_cats_selected: # Checa se a lista não está vazia
                  df_receita = df_receita[df_receita["categoria"].isin(receita_cats_selected)]
             df_receita = df_receita.set_index("data")[["valor"]]
@@ -239,7 +239,7 @@ def register_callbacks(dash_app):
             df_despesa["data"] = pd.to_datetime(df_despesa["data"], format="%d/%m/%Y", errors='coerce')
             df_despesa.dropna(subset=['data'], inplace=True)
             df_despesa = df_despesa[(df_despesa["data"] >= start_date_dt) & (df_despesa["data"] <= end_date_dt)]
-            df_despesa = filtrar_df_por_filtros_extras(df_despesa, filtro_recorrentes, filtro_parceladas)
+            df_despesa = filtrar_df_por_filtros_extras(df_despesa, filtro_recorrentes, filtro_cartao)
             if despesa_cats_selected: # Checa se a lista não está vazia
                 df_despesa = df_despesa[df_despesa["categoria"].isin(despesa_cats_selected)]
             df_despesa = df_despesa.set_index("data")[["valor"]]
@@ -265,10 +265,10 @@ def register_callbacks(dash_app):
             Input("store-receitas", "data"),
             Input("store-despesas", "data"),
             Input("radio-recorrentes", "value"),
-            Input("radio-parceladas", "value")
+            Input("radio-cartao", "value")
         ]
     )
-    def update_graph2(receita_cats_selected, despesa_cats_selected, start_date, end_date, store_receitas, store_despesas, filtro_recorrentes, filtro_parceladas):
+    def update_graph2(receita_cats_selected, despesa_cats_selected, start_date, end_date, store_receitas, store_despesas, filtro_recorrentes, filtro_cartao):
         fig = px.bar() 
         fig.update_layout(margin=graph_margin, height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
 
@@ -301,7 +301,7 @@ def register_callbacks(dash_app):
         end_date_dt = pd.to_datetime(end_date)
 
         df_final = df_final[(df_final["data"] >= start_date_dt) & (df_final["data"] <= end_date_dt)]
-        df_final = filtrar_df_por_filtros_extras(df_final, filtro_recorrentes, filtro_parceladas)
+        df_final = filtrar_df_por_filtros_extras(df_final, filtro_recorrentes, filtro_cartao)
         
         # Garante que receita_cats_selected e despesa_cats_selected sejam listas antes de usar isin
         filter_receitas = df_final["categoria"].isin(receita_cats_selected if receita_cats_selected else []) & (df_final["Output"] == "Receitas")
@@ -320,10 +320,10 @@ def register_callbacks(dash_app):
             Input("dropdown-receita", "value"),
             Input("store-receitas", "data"),
             Input("radio-recorrentes", "value"),
-            Input("radio-parceladas", "value")
+            Input("radio-cartao", "value")
         ]
     )
-    def update_graph_receita(receita_cats_selected, store_receitas, filtro_recorrentes, filtro_parceladas): # Removido start_date, end_date se não for usar
+    def update_graph_receita(receita_cats_selected, store_receitas, filtro_recorrentes, filtro_cartao): # Removido start_date, end_date se não for usar
         fig = px.pie(hole=.2)
         fig.update_layout(title={"text": "Receitas"}, margin=graph_margin, height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         fig.update_layout(legend=dict(orientation='h', yanchor='top', y=-0.2, xanchor='center', x=0.5))
@@ -348,7 +348,7 @@ def register_callbacks(dash_app):
         # end_date_dt = pd.to_datetime(end_date)
         # df_receita = df_receita[(df_receita["data"] >= start_date_dt) & (df_receita["data"] <= end_date_dt)]
 
-        df_receita = filtrar_df_por_filtros_extras(df_receita, filtro_recorrentes, filtro_parceladas)
+        df_receita = filtrar_df_por_filtros_extras(df_receita, filtro_recorrentes, filtro_cartao)
         df_receita = df_receita[df_receita["categoria"].isin(receita_cats_selected)]
         
         if not df_receita.empty:
@@ -375,10 +375,10 @@ def register_callbacks(dash_app):
             Input("dropdown-despesa", "value"),
             Input("store-despesas", "data"),
             Input("radio-recorrentes", "value"),
-            Input("radio-parceladas", "value")
+            Input("radio-cartao", "value")
         ]
     )
-    def update_graph_despesa(despesa_cats_selected, store_despesas, filtro_recorrentes, filtro_parceladas): # Removido start_date, end_date se não for usar
+    def update_graph_despesa(despesa_cats_selected, store_despesas, filtro_recorrentes, filtro_cartao): # Removido start_date, end_date se não for usar
         fig = px.pie(hole=.2)
         fig.update_layout(title={"text": "Despesas"}, margin=graph_margin, height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         fig.update_layout(legend=dict(orientation='h', yanchor='top', y=-0.2, xanchor='center', x=0.5))
@@ -398,7 +398,7 @@ def register_callbacks(dash_app):
 
         # Não precisa filtrar por data aqui se não for um Input
         
-        df_despesa = filtrar_df_por_filtros_extras(df_despesa, filtro_recorrentes, filtro_parceladas)
+        df_despesa = filtrar_df_por_filtros_extras(df_despesa, filtro_recorrentes, filtro_cartao)
         df_despesa = df_despesa[df_despesa["categoria"].isin(despesa_cats_selected)]
         
         if not df_despesa.empty:

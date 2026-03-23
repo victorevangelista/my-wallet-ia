@@ -66,7 +66,7 @@ layout = dbc.Col([
                             dbc.Col([
                                 dbc.Label('Extras'),
                                 dbc.Checklist(
-                                    options=[{"label": "Foi Parcelada", "value": 1},
+                                    options=[{"label": "Cartão de Crédito", "value": 1},
                                              {"label": "Receita recorrente", "value": 2}],
                                     value=[1],
                                     id='swtches-input-receita',
@@ -176,7 +176,7 @@ layout = dbc.Col([
                             dbc.Col([
                                 dbc.Label('Extras'),
                                 dbc.Checklist(
-                                    options=[{"label": "Foi Parcelado", "value": 1},
+                                    options=[{"label": "Cartão de Crédito", "value": 1},
                                              {"label": "Despesa recorrente", "value": 2}],
                                     value=[1],
                                     id='swtches-input-despesa',

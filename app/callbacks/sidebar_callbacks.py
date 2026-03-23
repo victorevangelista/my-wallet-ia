@@ -128,7 +128,7 @@ def register_callbacks(dash_app):
                 categoria_nome=categoria, # Passa o nome da categoria
                 data=pd.to_datetime(data).date(),
                 valor=valor_convertido,
-                parcelado=1 in extras,
+                cartao_credito=1 in extras,
                 fixo=2 in extras
             )
             # Limpa os campos em caso de sucesso
@@ -181,7 +181,7 @@ def register_callbacks(dash_app):
                 categoria_nome=categoria, # Passa o nome da categoria
                 data=pd.to_datetime(data).date(),
                 valor=valor_convertido,
-                parcelado=1 in extras,
+                cartao_credito=1 in extras,
                 fixo=2 in extras
             )
             return not is_open, message, "success" if success else "danger", "" if success else no_update, "" if success else no_update, pd.Timestamp.today().date() if success else no_update, None if success else no_update, [] if success else no_update, pd.Timestamp.now().timestamp() if success else no_update

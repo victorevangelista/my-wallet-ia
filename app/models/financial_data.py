@@ -32,7 +32,7 @@ class Receita(UserDataBase):
     descricao = Column(String(200), nullable=False)
     valor = Column(Float, nullable=False)
     data = Column(Date, nullable=False)
-    parcelado = Column(Boolean, default=False) 
+    cartao_credito = Column(Boolean, default=False) 
     fixo = Column(Boolean, default=False)     
     
     categoria_id = Column(Integer, ForeignKey('cat_receitas.id'), nullable=True)
@@ -48,7 +48,7 @@ class Despesa(UserDataBase):
     descricao = Column(String(200), nullable=False)
     valor = Column(Float, nullable=False)
     data = Column(Date, nullable=False)
-    parcelado = Column(Boolean, default=False) 
+    cartao_credito = Column(Boolean, default=False) 
     fixo = Column(Boolean, default=False)   
 
     categoria_id = Column(Integer, ForeignKey('cat_despesas.id'), nullable=True)

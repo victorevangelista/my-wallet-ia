@@ -94,15 +94,15 @@ layout = dbc.Col([
                         inline=True,
                         style={"marginBottom": "10px"}
                     ),
-                    html.Label("Lançamentos Parcelados:"),
+                    html.Label("Compras no Cartão de Crédito:"),
                     dbc.RadioItems(
                         options=[
                             {"label": "Todos", "value": "todas"},
-                            {"label": "Parcelados", "value": "parcelado"},
-                            {"label": "Não parcelados", "value": "nao_parcelado"}
+                            {"label": "No Cartão", "value": "cartao_credito"},
+                            {"label": "Outros", "value": "outros"}
                         ],
                         value="todas",
-                        id="radio-parceladas",
+                        id="radio-cartao",
                         inline=True
                     ),
 

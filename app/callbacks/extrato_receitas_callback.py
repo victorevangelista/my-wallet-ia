@@ -91,8 +91,8 @@ def register_callbacks(dash_app):
                 "valueFormatter": {"function": "d3.format('$,.2f')(params.value)"},
             },
             {
-                "headerName": "Parcelado",
-                "field": "parcelado",
+                "headerName": "Cartão de Crédito",
+                "field": "cartao_credito",
             },
             {
                 "headerName": "Fixo",
@@ -145,13 +145,13 @@ def register_callbacks(dash_app):
             valor = round(float(cell_changed[0]['data']['valor']), 2)
             data = pd.to_datetime(cell_changed[0]['data']['data']).date()
             categoria = cell_changed[0]['data']['categoria']
-            parcelado_val = cell_changed[0]['data']['parcelado']
+            cartao_credito_val = cell_changed[0]['data']['cartao_credito']
             fixo_val = cell_changed[0]['data']['fixo']
 
-            # Certifique-se que parcelado e fixo sejam booleanos se necessário pelo modelo/serviço
-            # Exemplo: parcelado = bool(parcelado_val)
+            # Certifique-se que cartao_credito e fixo sejam booleanos se necessário pelo modelo/serviço
+            # Exemplo: cartao_credito = bool(cartao_credito_val)
 
-            success, result = update_receita_por_usuario(user_session, id, cod, descricao, categoria, data, valor, parcelado_val, fixo_val)
+            success, result = update_receita_por_usuario(user_session, id, cod, descricao, categoria, data, valor, cartao_credito_val, fixo_val)
 
             return not is_open, f"{result} Linha: {cell_changed[0]['rowId']}" if success else result, update_trigger + 1
         return is_open, "Edite a tabela", update_trigger 

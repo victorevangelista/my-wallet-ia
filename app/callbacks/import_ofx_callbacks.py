@@ -156,7 +156,7 @@ def register_callbacks(dash_app):
                         categoria_nome=categoria_nome,
                         data=data_transacao,
                         valor=valor,
-                        parcelado=False,
+                        cartao_credito=False,
                         fixo=False
                     )
                 elif row["Tipo"] == "Despesa":
@@ -167,7 +167,7 @@ def register_callbacks(dash_app):
                         categoria_nome=categoria_nome,
                         data=data_transacao,
                         valor=valor,
-                        parcelado=False,
+                        cartao_credito=False,
                         fixo=False
                     )
                 else:

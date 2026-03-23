@@ -2,7 +2,7 @@ from app.models.financial_data import Despesa as FinancialDespesa, CatDespesas
 from sqlalchemy import func
 from datetime import datetime
 
-def salvar_despesa_por_usuario(user_session, cod, descricao, categoria_nome, data, valor, parcelado, fixo):
+def salvar_despesa_por_usuario(user_session, cod, descricao, categoria_nome, data, valor, cartao_credito, fixo):
     try:
         # Busca o ID da categoria pelo nome, específico para despesas
         categoria_obj = None
@@ -17,7 +17,7 @@ def salvar_despesa_por_usuario(user_session, cod, descricao, categoria_nome, dat
             categoria_id=categoria_id_val,
             data=data,
             valor=float(valor),
-            parcelado=parcelado,
+            cartao_credito=cartao_credito,
             fixo=fixo
         )
         user_session.add(nova_despesa)
@@ -43,7 +43,7 @@ def buscar_despesas_por_usuario(user_session):
                 "categoria": despesa.categoria.categoria if despesa.categoria else "Sem Categoria",
                 "data": despesa.data.strftime("%d/%m/%Y") if despesa.data else None,
                 "valor": despesa.valor,  
-                "parcelado": despesa.parcelado,
+                "cartao_credito": despesa.cartao_credito,
                 "fixo": despesa.fixo,
             }
             for despesa in despesas
@@ -53,7 +53,7 @@ def buscar_despesas_por_usuario(user_session):
         return [] # Retorna lista vazia em caso de erro
 
 
-def update_despesa_por_usuario(user_session, despesa_id, cod=None, descricao=None, categoria_nome=None, data=None, valor=None, parcelado=None, fixo=None):
+def update_despesa_por_usuario(user_session, despesa_id, cod=None, descricao=None, categoria_nome=None, data=None, valor=None, cartao_credito=None, fixo=None):
     """
     Atualiza uma despesa existente no banco de dados.
     
@@ -63,7 +63,7 @@ def update_despesa_por_usuario(user_session, despesa_id, cod=None, descricao=Non
         - categoria (str): Nova categoria (opcional).
         - data (str): Nova data no formato 'YYYY-MM-DD' (opcional).
         - valor (float): Novo valor (opcional).
-        - parcelado (bool): Atualizar se é parcelado ou não (opcional).
+        - cartao_credito (bool): Atualizar se é no cartão de crédito ou não (opcional).
         - fixo (bool): Atualizar se é fixo ou não (opcional).
 
     Retorno:
@@ -89,8 +89,8 @@ def update_despesa_por_usuario(user_session, despesa_id, cod=None, descricao=Non
             despesa.data = data # Assume que 'data' já é um objeto date
         if valor is not None:
             despesa.valor = float(valor)
-        if parcelado is not None:
-            despesa.parcelado = parcelado
+        if cartao_credito is not None:
+            despesa.cartao_credito = cartao_credito
         if fixo is not None:
             despesa.fixo = fixo
         

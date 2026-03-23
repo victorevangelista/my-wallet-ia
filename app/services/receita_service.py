@@ -2,7 +2,7 @@ from app.models.financial_data import Receita as FinancialReceita, CatReceitas
 from sqlalchemy import func
 from datetime import datetime
 
-def salvar_receita_por_usuario(user_session, cod, descricao, categoria_nome, data, valor, parcelado, fixo):
+def salvar_receita_por_usuario(user_session, cod, descricao, categoria_nome, data, valor, cartao_credito, fixo):
     try:
         # Busca o ID da categoria pelo nome, específico para receitas
         categoria_obj = None
@@ -17,7 +17,7 @@ def salvar_receita_por_usuario(user_session, cod, descricao, categoria_nome, dat
             categoria_id=categoria_id_val,
             data=data,
             valor=float(valor),
-            parcelado=parcelado,
+            cartao_credito=cartao_credito,
             fixo=fixo
         )
         user_session.add(nova_receita)
@@ -44,7 +44,7 @@ def buscar_receitas_por_usuario(user_session):
                 "categoria": receita.categoria.categoria if receita.categoria else "Sem Categoria",
                 "data": receita.data.strftime("%d/%m/%Y") if receita.data else None,
                 "valor": receita.valor,
-                "parcelado": receita.parcelado,
+                "cartao_credito": receita.cartao_credito,
                 "fixo": receita.fixo,
             }
             for receita in receitas
@@ -54,7 +54,7 @@ def buscar_receitas_por_usuario(user_session):
         return [] # Retorna lista vazia em caso de erro
 
 
-def update_receita_por_usuario(user_session, receita_id, cod=None, descricao=None, categoria_nome=None, data=None, valor=None, parcelado=None, fixo=None):
+def update_receita_por_usuario(user_session, receita_id, cod=None, descricao=None, categoria_nome=None, data=None, valor=None, cartao_credito=None, fixo=None):
     """
     Atualiza uma receita existente no banco de dados.
     
@@ -64,7 +64,7 @@ def update_receita_por_usuario(user_session, receita_id, cod=None, descricao=Non
         - categoria (str): Nova categoria (opcional).
         - data (str): Nova data no formato 'YYYY-MM-DD' (opcional).
         - valor (float): Novo valor (opcional).
-        - parcelado (bool): Atualizar se é parcelado ou não (opcional).
+        - cartao_credito (bool): Atualizar se é no cartão de crédito ou não (opcional).
         - fixo (bool): Atualizar se é fixo ou não (opcional).
 
     Retorno:
@@ -90,8 +90,8 @@ def update_receita_por_usuario(user_session, receita_id, cod=None, descricao=Non
             receita.data = data # Assume que 'data' já é um objeto date
         if valor is not None:
             receita.valor = float(valor)
-        if parcelado is not None:
-            receita.parcelado = parcelado
+        if cartao_credito is not None:
+            receita.cartao_credito = cartao_credito
         if fixo is not None:
             receita.fixo = fixo
         

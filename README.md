@@ -5,7 +5,7 @@
 ## 🚀 Funcionalidades
 
 - **Dashboard Interativo:** Gráficos (Plotly) de pizza e barras para visualização do saldo, despesas por categoria e evolução do fluxo de caixa ao longo do tempo.
-- **Filtros Avançados:** Filtre as análises no dashboard facilmente por Período, Categorias, Lançamentos Recorrentes (Fixos) ou Lançamentos Parcelados.
+- **Filtros Avançados:** Filtre as análises no dashboard facilmente por Período, Categorias, Lançamentos Recorrentes (Fixos) ou Compras no Cartão de Crédito.
 - **Controle de Lançamentos:**
   - Cadastre *Receitas* e *Despesas* rapidamente usando modais (janelas sobrepostas).
   - Adicione e remova categorias personalizadas.

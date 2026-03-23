@@ -73,7 +73,10 @@ def create_app():
 
     # Define o layout do Dash
     from app.layouts.main_layout import layout as main_layout
-    dash_app.layout = main_layout
+    def serve_layout():
+        return main_layout
+    
+    dash_app.layout = serve_layout
 
 
 

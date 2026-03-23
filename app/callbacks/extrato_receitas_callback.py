@@ -1,7 +1,6 @@
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output, State, ALL
 import dash_ag_grid as dag
-from dash import dcc
-from dash import html, Patch
+from dash import dcc, html, Patch, callback_context
 import dash_bootstrap_components as dbc
 import plotly.express as px
 import pandas as pd
@@ -12,28 +11,57 @@ from app.services.categoria_service import buscar_cat_receitas_por_usuario
 from flask_login import current_user
 from app import get_current_user_db_session
 
+def get_filtered_receitas_df(user_session, receita_cats_selected, start_date, end_date, filtro_recorrentes, filtro_cartao):
+    from app.callbacks.dashboard_callbacks import filtrar_df_por_filtros_extras
+    receitas_data = buscar_receitas_por_usuario(user_session)
+    df = pd.DataFrame(receitas_data)
+    if df.empty:
+        return df
+
+    df['data'] = pd.to_datetime(df['data'], format='%d/%m/%Y', errors='coerce')
+    df.dropna(subset=['data'], inplace=True)
+    
+    if start_date and end_date:
+        start_date_dt = pd.to_datetime(start_date)
+        end_date_dt = pd.to_datetime(end_date)
+        df = df[(df["data"] >= start_date_dt) & (df["data"] <= end_date_dt)]
+        
+    df = filtrar_df_por_filtros_extras(df, filtro_recorrentes, filtro_cartao)
+    
+    if receita_cats_selected:
+        df = df[df["categoria"].isin(receita_cats_selected)]
+        
+    return df
+
 def register_callbacks(dash_app):
     @dash_app.callback(
-        Output('tabela-receitas', 'children'),
+        Output({'page': 'receitas', 'type': 'extrato-grid', 'id': ALL}, 'children'),
         [
             Input("base-url", "pathname"),
-            Input("store-receitas", "data")
+            Input("store-receitas", "data"),
+            Input("dropdown-receita", "value"),
+            Input("date-picker-config", "start_date"),
+            Input("date-picker-config", "end_date"),
+            Input("radio-recorrentes", "value"),
+            Input("radio-cartao", "value")
         ]
     )
-    def imprimir_tabela(pathname, store_receitas):
+    def imprimir_tabela(pathname, store_receitas, receita_cats_selected, start_date, end_date, filtro_recorrentes, filtro_cartao):
+        outputs = callback_context.outputs_list
+        if not outputs or (isinstance(outputs, list) and not outputs[0]): return []
+        
         if not current_user.is_authenticated:
-            return html.Div("Por favor, faça login para ver as receitas.")
+            return [html.Div("Por favor, faça login para ver as receitas.")]
 
         user_session = get_current_user_db_session()
         if not user_session:
-            return html.Div("Erro ao carregar dados do usuário.")
+            return [html.Div("Erro ao carregar dados do usuário.")]
 
-        receitas_data = buscar_receitas_por_usuario(user_session)
-        df = pd.DataFrame(receitas_data)
+        df = get_filtered_receitas_df(user_session, receita_cats_selected, start_date, end_date, filtro_recorrentes, filtro_cartao)
         if df.empty:
-            return html.Div("Nenhuma receita encontrada.")
+            return [html.Div("Nenhuma receita encontrada.")]
 
-        df['data'] = pd.to_datetime(df['data'], format='%d/%m/%Y', errors='coerce').dt.date
+        df['data'] = df['data'].dt.date
         df = df.fillna('-')
         df = df.sort_values(by='data', ascending=False) # Atribuir o resultado da ordenação
 
@@ -115,7 +143,7 @@ def register_callbacks(dash_app):
                 )
             ], 
         )
-        return tabela
+        return [tabela]
 
 
     @dash_app.callback(
@@ -157,45 +185,63 @@ def register_callbacks(dash_app):
         return is_open, "Edite a tabela", update_trigger 
 
     @dash_app.callback(
-        Output('bar-graph-receitas', 'figure'),
-        Input("receitas-update-trigger", "data"),
+        Output({'page': 'receitas', 'type': 'extrato-graph', 'id': ALL}, 'figure'),
+        [
+            Input("receitas-update-trigger", "data"),
+            Input("dropdown-receita", "value"),
+            Input("date-picker-config", "start_date"),
+            Input("date-picker-config", "end_date"),
+            Input("radio-recorrentes", "value"),
+            Input("radio-cartao", "value")
+        ]
     )
-    def bar_graph(trigger_data):
+    def bar_graph(trigger_data, receita_cats_selected, start_date, end_date, filtro_recorrentes, filtro_cartao):
+        outputs = callback_context.outputs_list
+        if not outputs or (isinstance(outputs, list) and not outputs[0]): return []
+        
         if not current_user.is_authenticated:
-            return px.bar() # Retorna gráfico vazio
+            return [px.bar()]
 
         user_session = get_current_user_db_session()
         if not user_session:
-            return px.bar()
+            return [px.bar()]
 
-        receitas_data = buscar_receitas_por_usuario(user_session)
-        df = pd.DataFrame(receitas_data)
+        df = get_filtered_receitas_df(user_session, receita_cats_selected, start_date, end_date, filtro_recorrentes, filtro_cartao)
         if df.empty:
-            return px.bar(title="Receitas Gerais").update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+            return [px.bar(title="Receitas Gerais").update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')]
 
-        df_grouped = df.groupby("categoria").sum()[["valor"]].reset_index()
+        df_grouped = df.groupby("categoria")[["valor"]].sum().reset_index()
         graph = px.bar(df_grouped, x="categoria", y="valor", title="Receitas Gerais")
         graph.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        return graph
+        return [graph]
 
     @dash_app.callback(
-        Output('valor-receitas-card', 'children'),
-        Input("receitas-update-trigger", "data"),
+        Output({'page': 'receitas', 'type': 'extrato-metric', 'id': ALL}, 'children'),
+        [
+            Input("receitas-update-trigger", "data"),
+            Input("dropdown-receita", "value"),
+            Input("date-picker-config", "start_date"),
+            Input("date-picker-config", "end_date"),
+            Input("radio-recorrentes", "value"),
+            Input("radio-cartao", "value")
+        ]
     )
-    def display_receitas(trigger_data): # Renomeado display_desp para display_receitas
+    def display_receitas(trigger_data, receita_cats_selected, start_date, end_date, filtro_recorrentes, filtro_cartao):
+        outputs = callback_context.outputs_list
+        if not outputs or (isinstance(outputs, list) and not outputs[0]): return []
+        
         if not current_user.is_authenticated:
-            return "R$ 0.00"
+            return ["R$ 0.00"]
 
         user_session = get_current_user_db_session()
         if not user_session:
-            return "R$ 0.00"
+            return ["R$ 0.00"]
             
-        receitas_data = buscar_receitas_por_usuario(user_session)
-        df = pd.DataFrame(receitas_data)
+        df = get_filtered_receitas_df(user_session, receita_cats_selected, start_date, end_date, filtro_recorrentes, filtro_cartao)
         if df.empty:
-            return "R$ 0.00"
+            return ["R$ 0.00"]
         valor = df['valor'].sum()
-        return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        return [f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")]
     
     @dash_app.callback(
         Output("tbl-receita", "dashGridOptions"),

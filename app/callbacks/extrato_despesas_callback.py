@@ -1,8 +1,6 @@
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output, State, ALL
 import dash_ag_grid as dag
-from dash import dcc
-from dash import html, Patch
-from dash import ALL
+from dash import dcc, html, Patch, ALL, callback_context
 import dash_bootstrap_components as dbc
 import plotly.express as px
 import pandas as pd
@@ -15,28 +13,57 @@ from app.services.categoria_service import buscar_cat_despesas_por_usuario
 from flask_login import current_user
 from app import get_current_user_db_session
 
+def get_filtered_despesas_df(user_session, despesa_cats_selected, start_date, end_date, filtro_recorrentes, filtro_cartao):
+    from app.callbacks.dashboard_callbacks import filtrar_df_por_filtros_extras
+    despesas_data = buscar_despesas_por_usuario(user_session)
+    df = pd.DataFrame(despesas_data)
+    if df.empty:
+        return df
+
+    df['data'] = pd.to_datetime(df['data'], format='%d/%m/%Y', errors='coerce')
+    df.dropna(subset=['data'], inplace=True)
+    
+    if start_date and end_date:
+        start_date_dt = pd.to_datetime(start_date)
+        end_date_dt = pd.to_datetime(end_date)
+        df = df[(df["data"] >= start_date_dt) & (df["data"] <= end_date_dt)]
+        
+    df = filtrar_df_por_filtros_extras(df, filtro_recorrentes, filtro_cartao)
+    
+    if despesa_cats_selected:
+        df = df[df["categoria"].isin(despesa_cats_selected)]
+        
+    return df
+
 def register_callbacks(dash_app):
     @dash_app.callback(
-        Output('tabela-despesas', 'children'),
+        Output({'page': 'despesas', 'type': 'extrato-grid', 'id': ALL}, 'children'),
         [
             Input("base-url", "pathname"),
-            Input("store-despesas", "data")
+            Input("store-despesas", "data"),
+            Input("dropdown-despesa", "value"),
+            Input("date-picker-config", "start_date"),
+            Input("date-picker-config", "end_date"),
+            Input("radio-recorrentes", "value"),
+            Input("radio-cartao", "value")
         ]
     )
-    def imprimir_tabela(pathname, store_despesas):
+    def imprimir_tabela(pathname, store_despesas, despesa_cats_selected, start_date, end_date, filtro_recorrentes, filtro_cartao):
+        outputs = callback_context.outputs_list
+        if not outputs or (isinstance(outputs, list) and not outputs[0]): return []
+        
         if not current_user.is_authenticated:
-            return html.Div("Por favor, faça login para ver as despesas.")
+            return [html.Div("Por favor, faça login para ver as despesas.")]
 
         user_session = get_current_user_db_session()
         if not user_session:
-            return html.Div("Erro ao carregar dados do usuário.")
+            return [html.Div("Erro ao carregar dados do usuário.")]
 
-        despesas_data = buscar_despesas_por_usuario(user_session)
-        df = pd.DataFrame(despesas_data)
+        df = get_filtered_despesas_df(user_session, despesa_cats_selected, start_date, end_date, filtro_recorrentes, filtro_cartao)
         if df.empty:
-            return html.Div("Nenhuma despesa encontrada.")
+            return [html.Div("Nenhuma despesa encontrada.")]
             
-        df['data'] = pd.to_datetime(df['data'], format='%d/%m/%Y', errors='coerce').dt.date
+        df['data'] = df['data'].dt.date
         df = df.fillna('-')
         df = df.sort_values(by='data', ascending=False) # Atribuir o resultado da ordenação
         success, despesa_cat = buscar_cat_despesas_por_usuario(user_session)
@@ -117,7 +144,7 @@ def register_callbacks(dash_app):
                     )
             ]
         )   
-        return tabela
+        return [tabela]
 
 
     @dash_app.callback(
@@ -159,45 +186,63 @@ def register_callbacks(dash_app):
         return is_open, "Edite a tabela", update_trigger
 
     @dash_app.callback(
-        Output('bar-graph-despesas', 'figure'),
-        Input("despesas-update-trigger", "data"),
+        Output({'page': 'despesas', 'type': 'extrato-graph', 'id': ALL}, 'figure'),
+        [
+            Input("despesas-update-trigger", "data"),
+            Input("dropdown-despesa", "value"),
+            Input("date-picker-config", "start_date"),
+            Input("date-picker-config", "end_date"),
+            Input("radio-recorrentes", "value"),
+            Input("radio-cartao", "value")
+        ]
     )
-    def bar_graph(trigger_data):
+    def bar_graph(trigger_data, despesa_cats_selected, start_date, end_date, filtro_recorrentes, filtro_cartao):
+        outputs = callback_context.outputs_list
+        if not outputs or (isinstance(outputs, list) and not outputs[0]): return []
+        
         if not current_user.is_authenticated:
-            return px.bar() # Retorna gráfico vazio
+            return [px.bar()]
 
         user_session = get_current_user_db_session()
         if not user_session:
-            return px.bar()
+            return [px.bar()]
 
-        despesas_data = buscar_despesas_por_usuario(user_session)
-        df = pd.DataFrame(despesas_data)
+        df = get_filtered_despesas_df(user_session, despesa_cats_selected, start_date, end_date, filtro_recorrentes, filtro_cartao)
         if df.empty:
-            return px.bar(title="Despesas Gerais").update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+            return [px.bar(title="Despesas Gerais").update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')]
 
-        df_grouped = df.groupby("categoria").sum()[["valor"]].reset_index()
+        df_grouped = df.groupby("categoria")[["valor"]].sum().reset_index()
         graph = px.bar(df_grouped, x="categoria", y="valor", title="Despesas Gerais")
         graph.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        return graph
+        return [graph]
 
     @dash_app.callback(
-        Output('valor-despesas-card', 'children'),
-        Input("despesas-update-trigger", "data"),
+        Output({'page': 'despesas', 'type': 'extrato-metric', 'id': ALL}, 'children'),
+        [
+            Input("despesas-update-trigger", "data"),
+            Input("dropdown-despesa", "value"),
+            Input("date-picker-config", "start_date"),
+            Input("date-picker-config", "end_date"),
+            Input("radio-recorrentes", "value"),
+            Input("radio-cartao", "value")
+        ]
     )
-    def display_desp(trigger_data):
+    def display_desp(trigger_data, despesa_cats_selected, start_date, end_date, filtro_recorrentes, filtro_cartao):
+        outputs = callback_context.outputs_list
+        if not outputs or (isinstance(outputs, list) and not outputs[0]): return []
+        
         if not current_user.is_authenticated:
-            return "R$ 0.00"
+            return ["R$ 0.00"]
 
         user_session = get_current_user_db_session()
         if not user_session:
-            return "R$ 0.00"
+            return ["R$ 0.00"]
             
-        despesas_data = buscar_despesas_por_usuario(user_session)
-        df = pd.DataFrame(despesas_data)
+        df = get_filtered_despesas_df(user_session, despesa_cats_selected, start_date, end_date, filtro_recorrentes, filtro_cartao)
         if df.empty:
-            return "R$ 0.00"
+            return ["R$ 0.00"]
         valor = df['valor'].sum()
-        return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        return [f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")]
     
 
     @dash_app.callback(

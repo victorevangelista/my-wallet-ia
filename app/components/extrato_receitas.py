@@ -11,13 +11,13 @@ layout = dbc.Col([
             is_open=False,
             duration=5000,
         ),
-        html.Div(id='tabela-receitas', className='dbc')
+        html.Div(id={'page': 'receitas', 'type': 'extrato-grid', 'id': 'table'}, className='dbc')
     ], style={"marginRight": "10px"}),
 
     dbc.Row([
         dbc.Col([
             dbc.Card(
-                dcc.Graph(id='bar-graph-receitas', style={"marginRight": "20px"})
+                dcc.Graph(id={'page': 'receitas', 'type': 'extrato-graph', 'id': 'bar'}, style={"marginRight": "20px"})
             ),
         ], width=9),
 
@@ -25,12 +25,10 @@ layout = dbc.Col([
             dbc.Card(
                 dbc.CardBody([
                     html.H4("Receitas"),
-                    html.Legend("R$ -", id='valor-receitas-card', style={"fontSize": "40px"}),
+                    html.Legend("R$ -", id={'page': 'receitas', 'type': 'extrato-metric', 'id': 'total'}, style={"fontSize": "40px"}),
                     html.H6("Total de receitas"),
                 ], style={"textAlign": "center", "paddingTop": "30px"})
             )
         ], width=3)
     ], style={"marginTop": "20px"})
-
-
-], style={"padding": "10px"} )
+])

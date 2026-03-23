@@ -14,7 +14,7 @@ layout = dbc.Col([
                 dbc.CardGroup([
                     dbc.Card([
                         html.Label('Saldo'),
-                        html.H5('R$ 0', id='p-saldo-dashboard')
+                        html.H5('R$ 0', id={'page': 'dashboard', 'type': 'dash-metric', 'id': 'saldo'})
                     ], style={"paddingLeft": "20px", "paddingTop": "10px"}),
                     dbc.Card(
                         html.Div(className='fa fa-university card-icon'),
@@ -29,7 +29,7 @@ layout = dbc.Col([
                 dbc.CardGroup([
                     dbc.Card([
                         html.Label('Receita'),
-                        html.H5('R$ 0', id='p-receita-dashboard')
+                        html.H5('R$ 0', id={'page': 'dashboard', 'type': 'dash-metric', 'id': 'receita'})
                     ], style={"paddingLeft": "20px", "paddingTop": "10px"}),
                     dbc.Card(
                         html.Div(className='fa fa-smile-o card-icon'),
@@ -44,7 +44,7 @@ layout = dbc.Col([
                 dbc.CardGroup([
                     dbc.Card([
                         html.Label('Despesa'),
-                        html.H5('R$ 0', id='p-despesa-dashboard')
+                        html.H5('R$ 0', id={'page': 'dashboard', 'type': 'dash-metric', 'id': 'despesa'})
                     ], style={"paddingLeft": "20px", "paddingTop": "10px"}),
                     dbc.Card(
                         html.Div(className='fa fa-meh-o card-icon'),
@@ -56,83 +56,20 @@ layout = dbc.Col([
         ], style={"margin": "10px"}),
 
         dbc.Row([
-            dbc.Col([
-                dbc.Card([
-                    html.Legend('Filtrar lançamentos', className='card-title'),
-                    html.Label("Categoria das receitas"),
-                    html.Div(
-                        dcc.Dropdown(
-                            id='dropdown-receita',
-                            clearable=False,
-                            style={"width": "100%"},
-                            persistence=True,
-                            persistence_type="session",
-                            multi=True
-                        )
-                    ),
-                    html.Label("Categoria das despesas", style={"marginTop": "10px"}),
-                    html.Div(
-                        dcc.Dropdown(
-                            id='dropdown-despesa',
-                            clearable=False,
-                            style={"width": "100%"},
-                            persistence=True,
-                            persistence_type="session",
-                            multi=True
-                        )
-                    ),
-                    html.Legend("Filtros de Extras", style={"marginTop": "10px"}),
-                    html.Label("Lançamentos Recorrentes:"),
-                    dbc.RadioItems(
-                        options=[
-                            {"label": "Todos", "value": "todas"},
-                            {"label": "Recorrentes (Fixos)", "value": "recorrente"},
-                            {"label": "Não recorrentes", "value": "nao_recorrente"}
-                        ],
-                        value="todas",
-                        id="radio-recorrentes",
-                        inline=True,
-                        style={"marginBottom": "10px"}
-                    ),
-                    html.Label("Compras no Cartão de Crédito:"),
-                    dbc.RadioItems(
-                        options=[
-                            {"label": "Todos", "value": "todas"},
-                            {"label": "No Cartão", "value": "cartao_credito"},
-                            {"label": "Outros", "value": "outros"}
-                        ],
-                        value="todas",
-                        id="radio-cartao",
-                        inline=True
-                    ),
-
-                    html.Legend('Período de análise', style={"marginTop": "10px"}),
-                    dcc.DatePickerRange(
-                        month_format='Do MMM, YY',
-                        end_date_placeholder_text='Data...',
-                        start_date=start_date,  # Definindo o primeiro dia do mês
-                        end_date=datetime.today().date(),  # Ou qualquer outra data de término que você deseje
-                        updatemode='singledate',
-                        id='date-picker-config',
-                        style={'zIndex': '100'}
-                    )
-                ], style={'height': '100%', "padding": "20px"})
-            ], width=4),
-
             dbc.Col(
-                dbc.Card(dcc.Graph(id='graph1'), style={'height': '100%', 'padding': '10px'}), width=8
+                dbc.Card(dcc.Graph(id={'page': 'dashboard', 'type': 'dash-graph', 'id': 'graph1'}), style={'height': '100%', 'padding': '10px'}), width=12
             )
         ], style={"margin": "10px"}),
 
         dbc.Row([
             dbc.Col(
-                dbc.Card(dcc.Graph(id='graph2'), style={'height': '100%', 'padding': '10px'}), width=6
+                dbc.Card(dcc.Graph(id={'page': 'dashboard', 'type': 'dash-graph', 'id': 'graph2'}), style={'height': '100%', 'padding': '10px'}), width=6
             ),
             dbc.Col(
-                dbc.Card(dcc.Graph(id='graph3'), style={'height': '100%', 'padding': '10px'}), width=3
+                dbc.Card(dcc.Graph(id={'page': 'dashboard', 'type': 'dash-graph', 'id': 'graph3'}), style={'height': '100%', 'padding': '10px'}), width=3
             ),
             dbc.Col(
-                dbc.Card(dcc.Graph(id='graph4'), style={'height': '100%', 'padding': '10px'}), width=3
+                dbc.Card(dcc.Graph(id={'page': 'dashboard', 'type': 'dash-graph', 'id': 'graph4'}), style={'height': '100%', 'padding': '10px'}), width=3
             )
         ], style={"margin": "10px"})
        

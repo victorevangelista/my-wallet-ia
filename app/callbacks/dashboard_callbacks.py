@@ -318,12 +318,14 @@ def register_callbacks(dash_app):
         Output("graph3", "figure"),
         [
             Input("dropdown-receita", "value"),
+            Input("date-picker-config", "start_date"),
+            Input("date-picker-config", "end_date"),
             Input("store-receitas", "data"),
             Input("radio-recorrentes", "value"),
             Input("radio-cartao", "value")
         ]
     )
-    def update_graph_receita(receita_cats_selected, store_receitas, filtro_recorrentes, filtro_cartao): # Removido start_date, end_date se não for usar
+    def update_graph_receita(receita_cats_selected, start_date, end_date, store_receitas, filtro_recorrentes, filtro_cartao):
         fig = px.pie(hole=.2)
         fig.update_layout(title={"text": "Receitas"}, margin=graph_margin, height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         fig.update_layout(legend=dict(orientation='h', yanchor='top', y=-0.2, xanchor='center', x=0.5))
@@ -341,12 +343,11 @@ def register_callbacks(dash_app):
         if df_receita.empty or not receita_cats_selected:
             return fig
         
-        # Não precisa filtrar por data aqui se não for um Input
-        # df_receita["data"] = pd.to_datetime(df_receita["data"], format="%d/%m/%Y", errors='coerce')
-        # df_receita.dropna(subset=['data'], inplace=True)
-        # start_date_dt = pd.to_datetime(start_date)
-        # end_date_dt = pd.to_datetime(end_date)
-        # df_receita = df_receita[(df_receita["data"] >= start_date_dt) & (df_receita["data"] <= end_date_dt)]
+        df_receita["data"] = pd.to_datetime(df_receita["data"], format="%d/%m/%Y", errors='coerce')
+        df_receita.dropna(subset=['data'], inplace=True)
+        start_date_dt = pd.to_datetime(start_date)
+        end_date_dt = pd.to_datetime(end_date)
+        df_receita = df_receita[(df_receita["data"] >= start_date_dt) & (df_receita["data"] <= end_date_dt)]
 
         df_receita = filtrar_df_por_filtros_extras(df_receita, filtro_recorrentes, filtro_cartao)
         df_receita = df_receita[df_receita["categoria"].isin(receita_cats_selected)]
@@ -373,12 +374,14 @@ def register_callbacks(dash_app):
         Output("graph4", "figure"),
         [
             Input("dropdown-despesa", "value"),
+            Input("date-picker-config", "start_date"),
+            Input("date-picker-config", "end_date"),
             Input("store-despesas", "data"),
             Input("radio-recorrentes", "value"),
             Input("radio-cartao", "value")
         ]
     )
-    def update_graph_despesa(despesa_cats_selected, store_despesas, filtro_recorrentes, filtro_cartao): # Removido start_date, end_date se não for usar
+    def update_graph_despesa(despesa_cats_selected, start_date, end_date, store_despesas, filtro_recorrentes, filtro_cartao):
         fig = px.pie(hole=.2)
         fig.update_layout(title={"text": "Despesas"}, margin=graph_margin, height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         fig.update_layout(legend=dict(orientation='h', yanchor='top', y=-0.2, xanchor='center', x=0.5))
@@ -396,7 +399,11 @@ def register_callbacks(dash_app):
         if df_despesa.empty or not despesa_cats_selected:
             return fig
 
-        # Não precisa filtrar por data aqui se não for um Input
+        df_despesa["data"] = pd.to_datetime(df_despesa["data"], format="%d/%m/%Y", errors='coerce')
+        df_despesa.dropna(subset=['data'], inplace=True)
+        start_date_dt = pd.to_datetime(start_date)
+        end_date_dt = pd.to_datetime(end_date)
+        df_despesa = df_despesa[(df_despesa["data"] >= start_date_dt) & (df_despesa["data"] <= end_date_dt)]
         
         df_despesa = filtrar_df_por_filtros_extras(df_despesa, filtro_recorrentes, filtro_cartao)
         df_despesa = df_despesa[df_despesa["categoria"].isin(despesa_cats_selected)]

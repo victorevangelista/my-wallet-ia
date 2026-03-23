@@ -141,13 +141,11 @@ def create_app():
     @app.teardown_appcontext
     def teardown_user_db_session(exception=None):
         """Fecha a sessão de BD do usuário armazenada em flask.g."""
-        if current_user and current_user.is_authenticated:
-            user_id = current_user.id
-            session_attr = f"user_db_session_{user_id}"
-            if hasattr(g, session_attr):
-                session = getattr(g, session_attr)
+        for key in list(g.__dict__.keys()):
+            if key.startswith("user_db_session_"):
+                session = getattr(g, key)
                 session.close()
-                # print(f"Sessão do BD do usuário {user_id} fechada.") # Para debug
+                # print(f"Sessão do BD {key} fechada.") # Para debug
 
     return app, dash_app
 

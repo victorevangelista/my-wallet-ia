@@ -81,6 +81,30 @@ layout = dbc.Col([
                             multi=True
                         )
                     ),
+                    html.Legend("Filtros de Extras", style={"marginTop": "10px"}),
+                    html.Label("Lançamentos Recorrentes:"),
+                    dbc.RadioItems(
+                        options=[
+                            {"label": "Todos", "value": "todas"},
+                            {"label": "Recorrentes (Fixos)", "value": "recorrente"},
+                            {"label": "Não recorrentes", "value": "nao_recorrente"}
+                        ],
+                        value="todas",
+                        id="radio-recorrentes",
+                        inline=True,
+                        style={"marginBottom": "10px"}
+                    ),
+                    html.Label("Lançamentos Parcelados:"),
+                    dbc.RadioItems(
+                        options=[
+                            {"label": "Todos", "value": "todas"},
+                            {"label": "Parcelados", "value": "parcelado"},
+                            {"label": "Não parcelados", "value": "nao_parcelado"}
+                        ],
+                        value="todas",
+                        id="radio-parceladas",
+                        inline=True
+                    ),
 
                     html.Legend('Período de análise', style={"marginTop": "10px"}),
                     dcc.DatePickerRange(

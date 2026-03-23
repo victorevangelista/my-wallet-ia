@@ -1,5 +1,6 @@
 import os
 from sqlalchemy import create_engine
+from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from flask import current_app
@@ -32,9 +33,7 @@ def get_user_db_engine(user_identifier):
         db_path = get_user_db_path(user_identifier)
         _user_engines[user_identifier] = create_engine(
                 f"sqlite:///{db_path}",
-                pool_size=10,         # padrão é 5
-                max_overflow=20,      # padrão é 10
-                pool_timeout=30,
+                poolclass=NullPool
             )
     return _user_engines[user_identifier]
 

@@ -40,6 +40,8 @@ def register_callbacks(dash_app):
         [
             Input("date-picker-config", "start_date"),
             Input("date-picker-config", "end_date"),
+            Input("dropdown-receita", "value"),
+            Input("dropdown-despesa", "value"),
             Input("base-url", "pathname"),
             Input("store-receitas", "data"),
             Input("store-despesas", "data"),
@@ -47,7 +49,7 @@ def register_callbacks(dash_app):
             Input("radio-cartao", "value")
         ]
     )
-    def update_dashboard_metrics(start_date, end_date, pathname, store_receitas, store_despesas, filtro_recorrentes, filtro_cartao):
+    def update_dashboard_metrics(start_date, end_date, receita_cats, despesa_cats, pathname, store_receitas, store_despesas, filtro_recorrentes, filtro_cartao):
         outputs = callback_context.outputs_list
         if not outputs or (isinstance(outputs, list) and not outputs[0]):
             return []
@@ -58,17 +60,17 @@ def register_callbacks(dash_app):
         user_session = get_current_user_db_session()
         if not user_session:
             return ["R$ 0,00"] * len(outputs)
-
+ 
         # Buscar dados
         receitas_data = buscar_receitas_por_usuario(user_session)
         despesas_data = buscar_despesas_por_usuario(user_session)
         
         df_receita = pd.DataFrame(receitas_data)
         df_despesa = pd.DataFrame(despesas_data)
-
+ 
         start_date_dt = pd.to_datetime(start_date)
         end_date_dt = pd.to_datetime(end_date)
-
+ 
         # Processar Receitas
         soma_receitas = 0
         if not df_receita.empty:
@@ -76,8 +78,13 @@ def register_callbacks(dash_app):
             df_receita.dropna(subset=['data'], inplace=True)
             df_receita = df_receita[(df_receita["data"] >= start_date_dt) & (df_receita["data"] <= end_date_dt)]
             df_receita = filtrar_df_por_filtros_extras(df_receita, filtro_recorrentes, filtro_cartao)
+            
+            # Filtro de categorias
+            if receita_cats:
+                df_receita = df_receita[df_receita["categoria"].isin(receita_cats)]
+                
             soma_receitas = df_receita['valor'].sum()
-
+ 
         # Processar Despesas
         soma_despesas = 0
         if not df_despesa.empty:
@@ -85,10 +92,15 @@ def register_callbacks(dash_app):
             df_despesa.dropna(subset=['data'], inplace=True)
             df_despesa = df_despesa[(df_despesa["data"] >= start_date_dt) & (df_despesa["data"] <= end_date_dt)]
             df_despesa = filtrar_df_por_filtros_extras(df_despesa, filtro_recorrentes, filtro_cartao)
+            
+            # Filtro de categorias
+            if despesa_cats:
+                df_despesa = df_despesa[df_despesa["categoria"].isin(despesa_cats)]
+                
             soma_despesas = df_despesa['valor'].sum()
             
         soma_saldo = soma_receitas - soma_despesas
-
+ 
         # Formatar resultados
         def fmt(v): return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         
@@ -100,6 +112,7 @@ def register_callbacks(dash_app):
             elif metric_id == 'despesa': results.append(fmt(soma_despesas))
         
         return results
+
     
     # O callback de dropdowns continua separado pois tem outputs de texto e dropdown
     @dash_app.callback(

@@ -10,14 +10,20 @@ import plotly.graph_objects as go
 from flask_login import current_user
 from app import get_current_user_db_session
 
+pd.set_option('future.no_silent_downcasting', True)
+
 def filtrar_df_por_filtros_extras(df, filtro_recorrentes, filtro_cartao):
     if df.empty:
         return df
     
-    if 'fixo' not in df.columns: df['fixo'] = False
-    if 'cartao_credito' not in df.columns: df['cartao_credito'] = False
-    df['fixo'] = df['fixo'].fillna(False).astype(bool)
-    df['cartao_credito'] = df['cartao_credito'].fillna(False).astype(bool)
+    # Criar uma cópia para evitar SettingWithCopyWarning
+    df = df.copy()
+    
+    if 'fixo' not in df.columns: df.loc[:, 'fixo'] = False
+    if 'cartao_credito' not in df.columns: df.loc[:, 'cartao_credito'] = False
+    
+    df.loc[:, 'fixo'] = df['fixo'].fillna(False).astype(bool)
+    df.loc[:, 'cartao_credito'] = df['cartao_credito'].fillna(False).astype(bool)
     
     if filtro_recorrentes == "recorrente":
         df = df[df['fixo'] == True]
@@ -30,6 +36,7 @@ def filtrar_df_por_filtros_extras(df, filtro_recorrentes, filtro_cartao):
         df = df[df['cartao_credito'] == False]
         
     return df
+
 
 graph_margin = dict(l=25, r=25, t=25, b=0)
     
@@ -126,10 +133,14 @@ def register_callbacks(dash_app):
             Input("base-url", "pathname"),
             Input("store-despesas", "data"),
             Input("radio-recorrentes", "value"),
-            Input("radio-cartao", "value")
+            Input("radio-cartao", "value"),
+            Input("btn-limpar-filtros", "n_clicks")
+        ],
+        [
+            State("dropdown-despesa", "value")
         ]
     )
-    def populate_dropdown_despesas(start_date, end_date, pathname, store_despesas, filtro_recorrentes, filtro_cartao):
+    def populate_dropdown_despesas(start_date, end_date, pathname, store_despesas, filtro_recorrentes, filtro_cartao, n_clicks, current_val):
         if not current_user.is_authenticated:
             return [], []
         
@@ -147,9 +158,27 @@ def register_callbacks(dash_app):
         df_filtered = df[(df["data"] >= pd.to_datetime(start_date)) & (df["data"] <= pd.to_datetime(end_date))]
         df_filtered = filtrar_df_por_filtros_extras(df_filtered, filtro_recorrentes, filtro_cartao)
 
-        val = df_filtered["categoria"].unique().tolist()
-        dropdown_options = [{"label": i, "value": i} for i in val if pd.notna(i)]
-        return dropdown_options, val
+        all_cats = df_filtered["categoria"].unique().tolist()
+        dropdown_options = [{"label": i, "value": i} for i in all_cats if pd.notna(i)]
+        
+        ctx = callback_context
+        triggered_id = ctx.triggered[0]["prop_id"].split(".")[0] if ctx.triggered else None
+        
+        # Reset total se clicou no botão limpar
+        if triggered_id == "btn-limpar-filtros":
+            return dropdown_options, all_cats
+            
+        # Se for apenas navegação, e já houver valor, manter (deixar Dash Persistence agir)
+        if (triggered_id == "base-url" or not triggered_id) and current_val:
+            return dropdown_options, no_update
+            
+        # Manter seleção se possível ao mudar datas/radio
+        if current_val:
+            new_val = [c for c in current_val if c in all_cats]
+            if new_val:
+                return dropdown_options, new_val
+                
+        return dropdown_options, all_cats
 
     @dash_app.callback(
         [
@@ -162,10 +191,14 @@ def register_callbacks(dash_app):
             Input("base-url", "pathname"),
             Input("store-receitas", "data"),
             Input("radio-recorrentes", "value"),
-            Input("radio-cartao", "value")
+            Input("radio-cartao", "value"),
+            Input("btn-limpar-filtros", "n_clicks")
+        ],
+        [
+            State("dropdown-receita", "value")
         ]
     )
-    def populate_dropdown_receitas(start_date, end_date, pathname, store_receitas, filtro_recorrentes, filtro_cartao):
+    def populate_dropdown_receitas(start_date, end_date, pathname, store_receitas, filtro_recorrentes, filtro_cartao, n_clicks, current_val):
         if not current_user.is_authenticated:
             return [], []
         
@@ -183,9 +216,26 @@ def register_callbacks(dash_app):
         df_filtered = df[(df["data"] >= pd.to_datetime(start_date)) & (df["data"] <= pd.to_datetime(end_date))]
         df_filtered = filtrar_df_por_filtros_extras(df_filtered, filtro_recorrentes, filtro_cartao)
 
-        val = df_filtered["categoria"].unique().tolist()
-        dropdown_options = [{"label": i, "value": i} for i in val if pd.notna(i)]
-        return dropdown_options, val
+        all_cats = df_filtered["categoria"].unique().tolist()
+        dropdown_options = [{"label": i, "value": i} for i in all_cats if pd.notna(i)]
+        
+        ctx = callback_context
+        triggered_id = ctx.triggered[0]["prop_id"].split(".")[0] if ctx.triggered else None
+        
+        if triggered_id == "btn-limpar-filtros":
+            return dropdown_options, all_cats
+            
+        if (triggered_id == "base-url" or not triggered_id) and current_val:
+            return dropdown_options, no_update
+            
+        # Manter seleção se possível
+        if current_val:
+            new_val = [c for c in current_val if c in all_cats]
+            if new_val:
+                return dropdown_options, new_val
+                
+        return dropdown_options, all_cats
+
     
 
     @dash_app.callback(

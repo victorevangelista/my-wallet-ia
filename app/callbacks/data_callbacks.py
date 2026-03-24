@@ -48,6 +48,36 @@ def register_callbacks(dash_app):
         # Dropdowns e Accordion serão resetados via callback de indicadores
         return start, end, "todas", "todas"
 
+    # Callback clientside para limpar o localStorage fisicamente
+    dash_app.clientside_callback(
+        """
+        function(n_clicks) {
+            if (n_clicks > 0) {
+                // Limpa todas as chaves de persistência do Dash (de todos os tipos)
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.includes('persistence')) {
+                        localStorage.removeItem(key);
+                        i--; // Ajusta o índice pois o array diminuiu
+                    }
+                }
+                // Também tenta no sessionStorage por segurança
+                for (let i = 0; i < sessionStorage.length; i++) {
+                    const key = sessionStorage.key(i);
+                    if (key.includes('persistence')) {
+                        sessionStorage.removeItem(key);
+                        i--;
+                    }
+                }
+            }
+            return window.dash_clientside.no_update;
+        }
+        """,
+        Output("btn-limpar-filtros", "title"), # Dummy output
+        Input("btn-limpar-filtros", "n_clicks"),
+        prevent_initial_call=True
+    )
+
     @dash_app.callback(
         [
             Output("filter-icon", "style"),
@@ -78,9 +108,7 @@ def register_callbacks(dash_app):
             (start_date and start_date != default_start) or
             (end_date and end_date != default_end) or
             (rec != "todas") or
-            (cart != "todas") or
-            (isinstance(rec_cat, list) and len(rec_cat) > 0) or
-            (isinstance(desp_cat, list) and len(desp_cat) > 0)
+            (cart != "todas")
         )
         
         style = {"display": "inline-block", "color": "#ffc107"} if is_modified else {"display": "none"}

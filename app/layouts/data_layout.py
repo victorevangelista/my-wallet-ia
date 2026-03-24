@@ -59,7 +59,7 @@ filtros_globais = html.Div([
                                 id='date-picker-config',
                                 style={'zIndex': '100'},
                                 persistence=True,
-                                persistence_type="session",
+                                persistence_type="local",
                             )
                         ], md=4)
                     ], className="g-4 mb-4"),
@@ -77,7 +77,7 @@ filtros_globais = html.Div([
                                 inline=True,
                                 style={"marginBottom": "10px"},
                                 persistence=True,
-                                persistence_type="session",
+                                persistence_type="local",
                             ),
                         ], md=6),
                         dbc.Col([
@@ -92,7 +92,7 @@ filtros_globais = html.Div([
                                 id="radio-cartao",
                                 inline=True,
                                 persistence=True,
-                                persistence_type="session",
+                                persistence_type="local",
                             )
                         ], md=6),
                     ], className="g-4"),

@@ -4,7 +4,7 @@ import pandas as pd
 
 # Definição do layout principal do Dash
 layout = html.Div([
-    dcc.Location(id="base-url", refresh=True),  
+    dcc.Location(id="base-url", refresh=False),  
     
     dcc.Store(id='store-receitas', data={}),
     dcc.Store(id='store-despesas', data={}),

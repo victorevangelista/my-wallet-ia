@@ -1,6 +1,5 @@
 from dash import html, dcc
 import dash_bootstrap_components as dbc
-from app.components.sidebar import layout as sidebar
 from datetime import datetime
 
 content = html.Div(id="page-content-dash")
@@ -112,18 +111,15 @@ filtros_globais = html.Div([
 ], style={"margin": "10px"})
 
 def render_layout(username):
-    return dbc.Container(children=[
-            dcc.Location(id="base-url-data", refresh=True),
-            dcc.Store(id="receitas-update-trigger", data=0),
-            dcc.Store(id="despesas-update-trigger", data=0),
-            dbc.Row([
-                dbc.Col([
-                    dcc.Location(id='data-url'),
-                    sidebar,
-                ], md=2),
-                dbc.Col([
-                    filtros_globais,
-                    content
-                ], md=10, style={"overflow-y": "scroll", "height": "100vh"})
-            ]),
-        ], fluid=True, style={"padding": "0px"}, className="dbc")
+    return html.Div([
+        # Stores locais para controle de refresh de dados
+        dcc.Store(id="receitas-update-trigger", data=0),
+        dcc.Store(id="despesas-update-trigger", data=0),
+        dcc.Location(id='data-url', refresh=False),
+        
+        # Filtros Globais (agora em Accordion)
+        filtros_globais,
+        
+        # Área onde o callback injeta Dashboard, Extratos, etc.
+        content
+    ], className="dbc")

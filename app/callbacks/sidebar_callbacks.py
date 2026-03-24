@@ -46,17 +46,17 @@ from app import get_current_user_db_session
 
 
 def register_callbacks(dash_app):
+    # Toggle Sidebar
     @dash_app.callback(
-        Output('base-url-data', 'href'),
-        [Input("logout_button", "n_clicks")]
+        Output('sidebar-state', 'data'),
+        Input('sidebar-toggle', 'n_clicks'),
+        State('sidebar-state', 'data'),
+        prevent_initial_call=True
     )
-    def logout(n_clicks):
+    def toggle_sidebar(n_clicks, current_state):
         if n_clicks:
-            print("logout!")
-            logout_user()
-            return '/login'  # Redireciona para login após logout
-            # return no_update    
-        return no_update
+            return 'collapsed' if current_state == 'expanded' else 'expanded'
+        return current_state
 
 
     # Pop-up receita

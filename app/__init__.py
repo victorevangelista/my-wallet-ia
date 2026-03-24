@@ -38,6 +38,12 @@ def create_app():
         temp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'temp'))
         return flask.send_from_directory(temp_dir, filename)
 
+    @app.route('/logout')
+    def logout():
+        from flask_login import logout_user
+        logout_user()
+        return flask.redirect('/login')
+
     # Inicializa extensões
     db.init_app(app)
     login_manager.init_app(app)
@@ -106,31 +112,57 @@ def create_app():
     from dash import no_update
 
     @dash_app.callback(
-        [Output("page-content", "children"), Output("base-url", "href")], 
-        [Input("base-url", "pathname")],
+        [
+            Output("page-content", "children"), 
+            Output("base-url", "href"),
+            Output("navbar-container", "children"),
+            Output("sidebar-container-global", "children"),
+            Output("page-content", "style"),
+            Output("sidebar-container-global", "className")
+        ], 
+        [
+            Input("base-url", "pathname"),
+            Input("sidebar-state", "data")
+        ],
         [State("login-state", "data"), State("register-state", "data")]
     )
-    def render_page_content(pathname, login_state, register_state):
-        # Se o usuário já estiver autenticado e estiver em /login, redireciona para /data
+    def render_page_content(pathname, sidebar_state, login_state, register_state):
+        from app.components.navbar import create_navbar
+        from app.components.sidebar import create_sidebar
+        
+        # Estilo para centralizar login/register
+        centered_style = {"height": "100vh", "display": "flex", "justify-content": "center", "align-items": "center"}
+        # Estilo padrão para páginas do dashboard
+        default_content_style = {}
+
+        # Determinar largura da sidebar para a classe CSS
+        sidebar_class = "sidebar-container " + ("sidebar-expanded" if sidebar_state == "expanded" else "sidebar-collapsed")
+
+        # Se o usuário já estiver autenticado e estiver em /login ou /, redireciona para /data
         if current_user.is_authenticated and pathname in ["/login", "/"]:
-            return data_page(current_user.username), "/data"
+            return data_page(current_user.username), "/data", create_navbar(current_user), create_sidebar(sidebar_state), default_content_style, sidebar_class
 
         # Se o usuário já estiver autenticado e estiver em /register, redireciona para /data
         if current_user.is_authenticated and pathname in ["/register"]:
-            return data_page(current_user.username), "/data"
+            return data_page(current_user.username), "/data", create_navbar(current_user), create_sidebar(sidebar_state), default_content_style, sidebar_class
         
-        # Se o usuário não estiver logado e tentar acessar /data, redireciona para /login
+        # Se o usuário não estiver logado e tentar acessar /data ou similares, redireciona para /login
         if pathname in ["/data", "/extrato-despesas", "/extrato-receitas", "/import-ofx", "/fina-bot"]:
             if current_user.is_authenticated:
-                return data_page(current_user.username), no_update
-            return login_page(), "/login"
+                return data_page(current_user.username), no_update, create_navbar(current_user), create_sidebar(sidebar_state), default_content_style, sidebar_class
+            return login_page(), "/login", None, None, centered_style, "d-none"
 
         # Páginas padrão (Login e Registro)
-        if pathname == "/login" or pathname == "/": # Adicionado '/' para redirecionar para login
-            return login_page(), no_update
+        if pathname == "/login" or pathname == "/": 
+            if current_user.is_authenticated:
+                return data_page(current_user.username), "/data", create_navbar(current_user), create_sidebar(sidebar_state), default_content_style, sidebar_class
+            return login_page(), no_update, None, None, centered_style, "d-none"
         elif pathname == "/register":
-            return register_page(), no_update
-        return not_found_page(), no_update
+            if current_user.is_authenticated:
+                return data_page(current_user.username), "/data", create_navbar(current_user), create_sidebar(sidebar_state), default_content_style, sidebar_class
+            return register_page(), no_update, None, None, centered_style, "d-none"
+            
+        return not_found_page(), no_update, None, None, centered_style, "d-none"
     
     @app.before_request
     def before_request_user_db_session():

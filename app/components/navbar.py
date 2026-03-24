@@ -13,6 +13,9 @@ def create_navbar(user):
                 dbc.Row(
                     [
                         dbc.Col(
+                            dbc.NavbarBrand("My Budget", className="navbar-brand-custom", href="/data")
+                        ),
+                        dbc.Col(
                             dbc.Button(
                                 html.I(className="fa fa-bars"),
                                 id="sidebar-toggle",
@@ -22,9 +25,6 @@ def create_navbar(user):
                                 size="sm"
                             ),
                             width="auto"
-                        ),
-                        dbc.Col(
-                            dbc.NavbarBrand("My Budget", className="navbar-brand-custom", href="/data")
                         ),
                     ],
                     align="center",
